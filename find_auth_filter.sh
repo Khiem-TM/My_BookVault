@@ -1,1 +1,0 @@
-find api-gateway -name "*AuthenticationFilter*" -type f
