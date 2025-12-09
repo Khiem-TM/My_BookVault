@@ -1,0 +1,77 @@
+name: bookvault
+services:
+  kafka:
+    platform: linux/amd64
+    image: "confluentinc/cp-kafka:7.5.0"
+    container_name: kafka
+    hostname: kafka
+    restart: always
+    ports:
+      - "9094:9094"
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: "zookeeper:2181"
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,EXTERNAL://localhost:9094
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,EXTERNAL://0.0.0.0:9094
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+  zookeeper:
+    platform: linux/amd64
+    image: "confluentinc/cp-zookeeper:7.5.0"
+    container_name: zookeeper
+    hostname: zookeeper
+    restart: always
+    ports:
+      - "2181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+  mongodb:
+    platform: linux/arm64
+    image: arm64v8/mongo:4.4
+    container_name: mongodb
+    hostname: mongodb
+    restart: always
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example
+  mysql:
+    platform: linux/amd64
+    image: mysql:8.0.40-debian
+    container_name: mysql
+    hostname: mysql
+    restart: always
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+  neo4j:
+    platform: linux/amd64
+    image: neo4j:5.24.2
+    container_name: neo4j
+    hostname: neo4j
+    restart: always
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    environment:
+      NEO4J_AUTH: neo4j/12345678
+  zipkin:
+    platform: linux/amd64
+    image: openzipkin/zipkin:2.24
+    container_name: zipkin
+    hostname: zipkin
+    restart: always
+    ports:
+      - "9411:9411"
+  redis:
+    platform: linux/amd64
+    image: redis:7
+    container_name: redis
+    hostname: redis
+    restart: always
+    ports:
+      - "6379:6379"

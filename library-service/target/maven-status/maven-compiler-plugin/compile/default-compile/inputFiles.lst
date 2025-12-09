@@ -1,0 +1,7 @@
+/Users/KTPM_UET/MyBook/library-service/src/main/java/com/khiem/library/entity/LibraryItem.java
+/Users/KTPM_UET/MyBook/library-service/src/main/java/com/khiem/library/service/LibraryItemService.java
+/Users/KTPM_UET/MyBook/library-service/src/main/java/com/khiem/library/dto/LibraryItemDto.java
+/Users/KTPM_UET/MyBook/library-service/src/main/java/com/khiem/library/mapper/LibraryItemMapper.java
+/Users/KTPM_UET/MyBook/library-service/src/main/java/com/khiem/library/LibraryServiceApplication.java
+/Users/KTPM_UET/MyBook/library-service/src/main/java/com/khiem/library/repository/LibraryItemRepository.java
+/Users/KTPM_UET/MyBook/library-service/src/main/java/com/khiem/library/controller/LibraryController.java
