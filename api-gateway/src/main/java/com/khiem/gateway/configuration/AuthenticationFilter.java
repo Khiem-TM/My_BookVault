@@ -41,13 +41,7 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
             "/identity/auth/.*",
             "/identity/users/registration",
             "/notification/email/send",
-            "/file/media/download/.*",
-            "/book/.*",
-            "/review/.*",
-            "/library/.*",
-            "/transaction/.*",
-            "/order/.*",
-            "/payment/.*"
+            "/file/media/download/.*"
     };
 
     @Value("${app.api-prefix}")
@@ -59,22 +53,27 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
         log.info("Enter authentication filter....");
 
         if (isPublicEndpoint(exchange.getRequest()))
-            return chain.filter(exchange);
-
-        // Get token from authorization header
+            return chain.filter(exchange);        // Get token from authorization header
         List<String> authHeader = exchange.getRequest().getHeaders().get(HttpHeaders.AUTHORIZATION);
         if (CollectionUtils.isEmpty(authHeader))
             return unauthenticated(exchange.getResponse());
-
+        
         String token = authHeader.getFirst().replace("Bearer ", "");
         log.info("Token: {}", token);
-
+        
         return identityService.introspect(token).flatMap(introspectResponse -> {
-            if (introspectResponse.getResult().isValid())
+            log.info("Introspect response: {}", introspectResponse);
+            if (introspectResponse.getResult().isValid()) {
+                log.info("Token is valid, allowing request");
                 return chain.filter(exchange);
-            else
+            } else {
+                log.warn("Token is invalid");
                 return unauthenticated(exchange.getResponse());
-        }).onErrorResume(throwable -> unauthenticated(exchange.getResponse()));
+            }
+        }).onErrorResume(throwable -> {
+            log.error("Error during introspection: {}", throwable.getMessage(), throwable);
+            return unauthenticated(exchange.getResponse());
+        });
     }
 
     @Override

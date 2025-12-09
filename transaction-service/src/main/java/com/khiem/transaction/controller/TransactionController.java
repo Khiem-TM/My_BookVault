@@ -17,10 +17,15 @@ public class TransactionController {
     @GetMapping("/by-user/{userId}")
     public List<TransactionDto> byUser(@PathVariable Long userId) { return service.findByUser(userId); }
 
+    @GetMapping
+    public List<TransactionDto> all() { return service.all(); }
+
     @PostMapping("/borrow")
     public ResponseEntity<TransactionDto> borrow(@Valid @RequestBody TransactionDto dto) { return ResponseEntity.ok(service.borrow(dto)); }
 
     @PostMapping("/return")
     public ResponseEntity<TransactionDto> returnBook(@Valid @RequestBody TransactionDto dto) { return ResponseEntity.ok(service.returnBook(dto)); }
-}
 
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable Long id) { service.delete(id); return ResponseEntity.noContent().build(); }
+}

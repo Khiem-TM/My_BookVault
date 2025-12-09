@@ -1,0 +1,1 @@
+chmod +x debug_auth.sh && bash debug_auth.sh

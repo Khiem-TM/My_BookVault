@@ -6,9 +6,9 @@ import jakarta.validation.Valid;
 
 import org.springframework.web.bind.annotation.*;
 
-import com.khiem.identity.dto.request.ApiResponse;
 import com.khiem.identity.dto.request.UserCreationRequest;
 import com.khiem.identity.dto.request.UserUpdateRequest;
+import com.khiem.identity.dto.response.ApiResponse;
 import com.khiem.identity.dto.response.UserResponse;
 import com.khiem.identity.service.UserService;
 

@@ -13,6 +13,25 @@ spring:
       port: 6379
   cloud:
     gateway:
+      globalcors:
+        add-to-simple-url-handler-mapping: true
+        corsConfigurations:
+          '[/**]':
+            allowedOrigins:
+              - http://localhost:4173
+              - http://localhost:3000
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - OPTIONS
+            allowedHeaders:
+              - Authorization
+              - Content-Type
+              - X-Requested-With
+            allowCredentials: true
+            maxAge: 3600
       default-filters:
         - name: CircuitBreaker
           args:
@@ -20,43 +39,43 @@ spring:
             fallbackUri: forward:/fallback
       routes:
         - id: identity_service
-          uri: http://localhost:8080
+          uri: http://identity-service:8080
           predicates:
             - Path=${app.api-prefix}/identity/**
           filters:
             - StripPrefix=2
         - id: profile_service
-          uri: http://localhost:8081
+          uri: http://profile-service:8081
           predicates:
             - Path=${app.api-prefix}/profile/users/**
           filters:
             - StripPrefix=2
         - id: notification_service
-          uri: http://localhost:8082
+          uri: http://notification-service:8082
           predicates:
             - Path=${app.api-prefix}/notification/**
           filters:
             - StripPrefix=2
         - id: post_service
-          uri: http://localhost:8083
+          uri: http://post-service:8083
           predicates:
             - Path=${app.api-prefix}/post/**
           filters:
             - StripPrefix=2
         - id: file_service
-          uri: http://localhost:8084
+          uri: http://file-service:8084
           predicates:
             - Path=${app.api-prefix}/file/**
           filters:
             - StripPrefix=2
         - id: chat_service
-          uri: http://localhost:8085
+          uri: http://chat-service:8085
           predicates:
             - Path=${app.api-prefix}/chat/**
           filters:
             - StripPrefix=2
         - id: book_service
-          uri: http://localhost:8086
+          uri: http://book-service:8086
           predicates:
             - Path=${app.api-prefix}/book/**
           filters:
@@ -72,7 +91,7 @@ spring:
                 retries: 2
                 statuses: BAD_GATEWAY, SERVICE_UNAVAILABLE, GATEWAY_TIMEOUT
         - id: review_service
-          uri: http://localhost:8087
+          uri: http://review-service:8087
           predicates:
             - Path=${app.api-prefix}/review/**
           filters:
@@ -88,7 +107,7 @@ spring:
                 retries: 2
                 statuses: BAD_GATEWAY, SERVICE_UNAVAILABLE, GATEWAY_TIMEOUT
         - id: library_service
-          uri: http://localhost:8088
+          uri: http://library-service:8088
           predicates:
             - Path=${app.api-prefix}/library/**
           filters:
@@ -103,7 +122,7 @@ spring:
                 retries: 2
                 statuses: BAD_GATEWAY, SERVICE_UNAVAILABLE, GATEWAY_TIMEOUT
         - id: transaction_service
-          uri: http://localhost:8090
+          uri: http://transaction-service:8090
           predicates:
             - Path=${app.api-prefix}/transaction/**
           filters:
@@ -119,7 +138,7 @@ spring:
                 retries: 2
                 statuses: BAD_GATEWAY, SERVICE_UNAVAILABLE, GATEWAY_TIMEOUT
         - id: order_service
-          uri: http://localhost:8091
+          uri: http://order-service:8091
           predicates:
             - Path=${app.api-prefix}/order/**
           filters:
@@ -135,7 +154,7 @@ spring:
                 retries: 2
                 statuses: BAD_GATEWAY, SERVICE_UNAVAILABLE, GATEWAY_TIMEOUT
         - id: payment_service
-          uri: http://localhost:8092
+          uri: http://payment-service:8092
           predicates:
             - Path=${app.api-prefix}/payment/**
           filters:

@@ -18,6 +18,12 @@ public enum ErrorCode {
     INVALID_DOB(1008, "Your age must be at least {min}", HttpStatus.BAD_REQUEST),
     INVALID_EMAIL(1009, "Invalid email address", HttpStatus.BAD_REQUEST),
     EMAIL_IS_REQUIRED(1009, "Email is required", HttpStatus.BAD_REQUEST),
+    INVALID_TOKEN(1010, "Invalid token", HttpStatus.BAD_REQUEST),
+    TOKEN_EXPIRED(1011, "Token has expired", HttpStatus.BAD_REQUEST),
+    TOKEN_ALREADY_USED(1012, "Token has already been used", HttpStatus.BAD_REQUEST),
+    TOKEN_REVOKED(1013, "Token has been revoked", HttpStatus.BAD_REQUEST),
+    EMAIL_NOT_VERIFIED(1014, "Email has not been verified", HttpStatus.FORBIDDEN),
+    PASSWORDS_NOT_MATCH(1015, "Passwords do not match", HttpStatus.BAD_REQUEST),
     ;
 
     ErrorCode(int code, String message, HttpStatusCode statusCode) {

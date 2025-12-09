@@ -19,6 +19,10 @@ public class TransactionService {
         return repository.findByUserId(userId).stream().map(this::toDto).collect(Collectors.toList());
     }
 
+    public List<TransactionDto> all() {
+        return repository.findAll().stream().map(this::toDto).collect(Collectors.toList());
+    }
+
     public TransactionDto borrow(TransactionDto dto) {
         Transaction tx = toEntity(dto);
         tx.setType(Transaction.Type.BORROW);
@@ -36,6 +40,8 @@ public class TransactionService {
         tx.setDueDate(null);
         return toDto(repository.save(tx));
     }
+
+    public void delete(Long id) { repository.deleteById(id); }
 
     private TransactionDto toDto(Transaction tx) {
         TransactionDto d = new TransactionDto();
@@ -61,4 +67,3 @@ public class TransactionService {
         return tx;
     }
 }
-
