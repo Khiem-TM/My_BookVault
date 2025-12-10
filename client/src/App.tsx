@@ -15,6 +15,8 @@ import TotalUsers from './features/admin/TotalUsers'
 import TotalBorrows from './features/admin/TotalBorrows'
 import { JSX } from 'react'
 import Layout from './shared/ui/Layout'
+import AdminLayout from './features/admin/AdminLayout'
+import AdminProfile from './features/admin/AdminProfile'
 
 function Protected({ children, role }: { children: JSX.Element, role?: 'ADMIN'|'USER' }) {
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
@@ -38,12 +40,13 @@ export default function App() {
         <Route path="genres" element={<Genres/>} />
         <Route path="history" element={<History/>} />
       </Route>
-      <Route element={<Protected role='ADMIN'><Layout/></Protected>}>
+      <Route element={<Protected role='ADMIN'><AdminLayout/></Protected>}>
         <Route path="admin" element={<AdminDashboard/>} />
         <Route path="admin/database" element={<DatabaseView/>} />
         <Route path="admin/total-books" element={<TotalBooks/>} />
         <Route path="admin/total-users" element={<TotalUsers/>} />
         <Route path="admin/total-borrows" element={<TotalBorrows/>} />
+        <Route path="admin/profile" element={<AdminProfile/>} />
       </Route>
     </Routes>
   )

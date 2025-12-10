@@ -1,6 +1,7 @@
 import { NavLink, Link, useNavigate } from 'react-router-dom'
-import { BookOpen, Search } from 'lucide-react'
+import { BookOpen, Search, LogOut } from 'lucide-react'
 import { useState } from 'react'
+import { api } from '../../services/apiClient'
 
 export default function Header() {
   const [term, setTerm] = useState('')
@@ -9,6 +10,13 @@ export default function Header() {
     e.preventDefault()
     const q = term.trim()
     if (q) navigate(`/books?search=${encodeURIComponent(q)}`)
+  }
+  async function logout() {
+    const token = localStorage.getItem('token')
+    try { if (token) await api.post('/identity/identity/auth/logout', { token }) } catch {}
+    localStorage.removeItem('token')
+    localStorage.removeItem('role')
+    navigate('/auth')
   }
   return (
     <header className="sticky top-0 z-40 border-b bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60">
@@ -34,6 +42,10 @@ export default function Header() {
             <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-200 to-purple-200" />
             <span className="hidden md:inline text-sm">Profile</span>
           </NavLink>
+          <button onClick={logout} className="inline-flex items-center gap-2 px-3 py-2 rounded hover:bg-red-50 text-red-600 transition">
+            <LogOut className="h-4 w-4" />
+            <span className="hidden md:inline text-sm">Logout</span>
+          </button>
         </div>
       </div>
     </header>

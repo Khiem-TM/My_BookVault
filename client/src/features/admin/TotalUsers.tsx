@@ -1,11 +1,15 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { api } from '../../services/apiClient'
 
 export default function TotalUsers() {
   const qc = useQueryClient()
+  const [search, setSearch] = useState('')
   const [modal, setModal] = useState<{type:'edit'|'delete', userId:number, name?:string, email?:string}|null>(null)
-  const { data } = useQuery({ queryKey: ['users'], queryFn: async () => (await api.get('/identity/users')).data })
+  const { data } = useQuery({ queryKey: ['users'], queryFn: async () => (await api.get('/identity/identity/users')).data })
+  const list = useMemo(() => (data?.result||[]).filter((u:any)=>
+    !search || (u.name?.toLowerCase().includes(search.toLowerCase()) || u.email?.toLowerCase().includes(search.toLowerCase()))
+  ), [data, search])
   const save = useMutation({
     mutationFn: async (payload: { userId:number, name?:string, email?:string }) => api.put(`/identity/users/${payload.userId}`, { name: payload.name, email: payload.email }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['users'] })
@@ -17,9 +21,12 @@ export default function TotalUsers() {
 
   return (
     <section className="max-w-6xl mx-auto px-4 py-8">
-      <img src="/admin/3.png" alt="total-users" className="w-full rounded mb-6" />
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-xl font-semibold">Manage Users</h2>
+        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search users..." className="border rounded px-3 py-2 w-64" />
+      </div>
       <div className="grid md:grid-cols-2 gap-4">
-        {(data||[]).map((u:any) => (
+        {list.map((u:any) => (
           <div key={u.id} className="border rounded p-4 flex items-center justify-between">
             <div>
               <div className="font-medium">{u.name || `User #${u.id}`}</div>
