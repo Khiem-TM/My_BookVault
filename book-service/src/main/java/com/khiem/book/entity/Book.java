@@ -7,7 +7,11 @@ import lombok.Getter;
 import lombok.Setter;
 
 @Entity
-@Table(name = "books")
+@Table(name = "books", indexes = {
+    @Index(name = "idx_book_title", columnList = "title"),
+    @Index(name = "idx_book_author", columnList = "author"),
+    @Index(name = "idx_book_isbn", columnList = "isbn", unique = true)
+})
 @Getter
 @Setter
 public class Book {
@@ -36,5 +40,12 @@ public class Book {
 
     @Column(length = 50)
     private String status; // AVAILABLE, OUT_OF_STOCK, ARCHIVED
+
+    private String publisher;
+    private String thumbnailUrl;
+    private Integer pageCount;
+    private Double averageRating;
+    private Integer ratingsCount;
+    private String language;
 }
 

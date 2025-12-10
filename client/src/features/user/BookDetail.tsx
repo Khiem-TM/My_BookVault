@@ -12,51 +12,59 @@ import {
   Share2,
   MessageCircle,
 } from "lucide-react";
-import { seedBooks } from "../../data/seedBooks";
 import { useAuthStore } from "../../store/authStore";
+import { bookService, reviewService } from "../../services/apiServices";
 
 export default function BookDetail() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuthStore();
-  const [book, setBook] = useState(seedBooks.find((b) => b.id === id));
-  const [reviews, setReviews] = useState([
-    {
-      id: 1,
-      user: "Alice Johnson",
-      rating: 5,
-      comment: "Absolutely brilliant! A masterpiece of literature.",
-      date: "2024-01-15",
-      verified: true,
-    },
-    {
-      id: 2,
-      user: "Bob Smith",
-      rating: 4,
-      comment:
-        "Great read, highly recommend for anyone interested in classic literature.",
-      date: "2024-01-10",
-      verified: true,
-    },
-    {
-      id: 3,
-      user: "Carol Davis",
-      rating: 5,
-      comment:
-        "One of the best books I've ever read. The character development is outstanding.",
-      date: "2024-01-05",
-      verified: false,
-    },
-  ]);
+  const [book, setBook] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [reviews, setReviews] = useState<any[]>([]);
   const [selectedTab, setSelectedTab] = useState<
     "description" | "reviews" | "details"
   >("description");
   const [userReview, setUserReview] = useState({ rating: 5, comment: "" });
   const [isAddedToLibrary, setIsAddedToLibrary] = useState(false);
-  const [relatedBooks] = useState(
-    seedBooks
-      .filter((b) => b.id !== id && b.category === book?.category)
-      .slice(0, 4)
-  );
+  
+  // Fetch book details and reviews
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!id) return;
+      setLoading(true);
+      try {
+        const [bookData, reviewsData] = await Promise.all([
+          bookService.getBookById(id),
+          reviewService.getReviews(id).catch(() => [])
+        ]);
+        setBook(bookData);
+        
+        // Map reviews to UI format
+        const mappedReviews = (reviewsData || []).map((r: any) => ({
+            id: r.id,
+            user: "User #" + r.userId, // We only have userId in ReviewDto
+            rating: r.rating,
+            comment: r.content,
+            date: r.createdAt ? new Date(r.createdAt).toLocaleDateString() : 'Recently',
+            verified: true
+        }));
+        setReviews(mappedReviews);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
 
   if (!book) {
     return (
@@ -98,6 +106,15 @@ export default function BookDetail() {
     alert("Book added to your library!");
   };
 
+  // Helper values
+  const imageUrl = book.thumbnailUrl || "/api/placeholder/400/600";
+  const author = book.author || "Unknown Author";
+  const rating = book.averageRating || 0;
+  const reviewCount = book.ratingsCount || 0;
+  const price = book.price || "Free";
+  const categories = book.categories || [];
+  const publishedDate = book.publishedAt || book.publishDate;
+
   return (
     <div className="min-h-screen bg-gray-50">
 
@@ -129,8 +146,15 @@ export default function BookDetail() {
           <div className="md:flex">
             {/* Book Cover */}
             <div className="md:w-1/3 lg:w-1/4">
-              <div className="aspect-w-3 aspect-h-4 bg-gradient-to-br from-blue-100 to-purple-100 h-96 md:h-full flex items-center justify-center">
-                <BookOpen className="h-24 w-24 text-blue-400" />
+              <div className="aspect-w-3 aspect-h-4 bg-gray-100 h-96 md:h-full flex items-center justify-center relative overflow-hidden">
+                <img 
+                    src={imageUrl} 
+                    alt={book.title}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                        (e.target as HTMLImageElement).src = "/api/placeholder/400/600";
+                    }}
+                 />
               </div>
             </div>
 
@@ -138,13 +162,15 @@ export default function BookDetail() {
             <div className="md:w-2/3 lg:w-3/4 p-8">
               <div className="flex justify-between items-start mb-4">
                 <div>
-                  <span className="inline-block bg-blue-100 text-blue-800 text-sm px-3 py-1 rounded-full mb-3">
-                    {book.category}
-                  </span>
+                  {categories.length > 0 && (
+                    <span className="inline-block bg-blue-100 text-blue-800 text-sm px-3 py-1 rounded-full mb-3">
+                        {categories[0]}
+                    </span>
+                  )}
                   <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
                     {book.title}
                   </h1>
-                  <p className="text-xl text-gray-600 mb-4">by {book.author}</p>
+                  <p className="text-xl text-gray-600 mb-4">by {author}</p>
                 </div>
                 <button className="p-3 text-gray-400 hover:text-red-500 transition-colors">
                   <Heart className="h-6 w-6" />
@@ -158,21 +184,21 @@ export default function BookDetail() {
                     <Star
                       key={i}
                       className={`h-5 w-5 ${
-                        i < Math.floor(book.rating)
+                        i < Math.floor(rating)
                           ? "text-yellow-400 fill-current"
                           : "text-gray-300"
                       }`}
                     />
                   ))}
                 </div>
-                <span className="text-lg font-semibold">{book.rating}</span>
-                <span className="text-gray-600">({book.reviews} reviews)</span>
+                <span className="text-lg font-semibold">{rating}</span>
+                <span className="text-gray-600">({reviewCount} reviews)</span>
               </div>
 
               {/* Price & Actions */}
               <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between mb-6">
                 <div className="text-3xl font-bold text-blue-600">
-                  ${book.price}
+                  {typeof price === 'number' ? `$${price}` : price}
                 </div>
                 <div className="flex gap-3">
                   <button
@@ -201,15 +227,15 @@ export default function BookDetail() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                 <div className="flex items-center gap-2 text-sm text-gray-600">
                   <User className="h-4 w-4" />
-                  <span>{book.publisher}</span>
+                  <span>{book.publisher || "Unknown Publisher"}</span>
                 </div>
                 <div className="flex items-center gap-2 text-sm text-gray-600">
                   <Calendar className="h-4 w-4" />
-                  <span>{new Date(book.publishDate).getFullYear()}</span>
+                  <span>{publishedDate ? new Date(publishedDate).getFullYear() : "N/A"}</span>
                 </div>
                 <div className="flex items-center gap-2 text-sm text-gray-600">
                   <Package className="h-4 w-4" />
-                  <span>{book.quantity} available</span>
+                  <span>{book.pageCount ? `${book.pageCount} pages` : "Unknown pages"}</span>
                 </div>
                 <div className="flex items-center gap-2 text-sm text-gray-600">
                   <BookOpen className="h-4 w-4" />
@@ -219,7 +245,7 @@ export default function BookDetail() {
 
               {/* Tags */}
               <div className="flex flex-wrap gap-2">
-                {book.tags.map((tag) => (
+                {categories.map((tag: string) => (
                   <span
                     key={tag}
                     className="bg-gray-100 text-gray-700 text-sm px-3 py-1 rounded-full"
@@ -261,19 +287,7 @@ export default function BookDetail() {
           <div className="p-8">
             {selectedTab === "description" && (
               <div className="prose max-w-none">
-                <p className="text-lg text-gray-700 leading-relaxed">
-                  {book.description}
-                </p>
-                <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-                  <h3 className="font-semibold text-blue-900 mb-2">
-                    About this book
-                  </h3>
-                  <p className="text-blue-800">
-                    This edition includes additional commentary and analysis,
-                    making it perfect for both casual readers and students of
-                    literature.
-                  </p>
-                </div>
+                <div className="text-lg text-gray-700 leading-relaxed" dangerouslySetInnerHTML={{ __html: book.description || "No description available." }} />
               </div>
             )}
 
@@ -336,16 +350,16 @@ export default function BookDetail() {
                   <dl className="space-y-3">
                     <div className="flex justify-between">
                       <dt className="text-gray-600">Author:</dt>
-                      <dd className="font-medium">{book.author}</dd>
+                      <dd className="font-medium">{author}</dd>
                     </div>
                     <div className="flex justify-between">
                       <dt className="text-gray-600">Publisher:</dt>
-                      <dd className="font-medium">{book.publisher}</dd>
+                      <dd className="font-medium">{book.publisher || "N/A"}</dd>
                     </div>
                     <div className="flex justify-between">
                       <dt className="text-gray-600">Publication Date:</dt>
                       <dd className="font-medium">
-                        {new Date(book.publishDate).toLocaleDateString()}
+                        {publishedDate ? new Date(publishedDate).toLocaleDateString() : "N/A"}
                       </dd>
                     </div>
                     <div className="flex justify-between">
@@ -353,12 +367,12 @@ export default function BookDetail() {
                       <dd className="font-medium">{book.isbn}</dd>
                     </div>
                     <div className="flex justify-between">
-                      <dt className="text-gray-600">Category:</dt>
-                      <dd className="font-medium">{book.category}</dd>
+                      <dt className="text-gray-600">Language:</dt>
+                      <dd className="font-medium">{book.language || "English"}</dd>
                     </div>
                     <div className="flex justify-between">
-                      <dt className="text-gray-600">Available Copies:</dt>
-                      <dd className="font-medium">{book.quantity}</dd>
+                      <dt className="text-gray-600">Page Count:</dt>
+                      <dd className="font-medium">{book.pageCount || "N/A"}</dd>
                     </div>
                   </dl>
                 </div>
@@ -367,7 +381,7 @@ export default function BookDetail() {
                     Tags & Keywords
                   </h3>
                   <div className="flex flex-wrap gap-2">
-                    {book.tags.map((tag) => (
+                    {categories.map((tag: string) => (
                       <span
                         key={tag}
                         className="bg-blue-100 text-blue-800 text-sm px-3 py-1 rounded-full"
@@ -381,35 +395,6 @@ export default function BookDetail() {
             )}
           </div>
         </div>
-
-        {/* Related Books */}
-        {relatedBooks.length > 0 && (
-          <div className="bg-white rounded-xl shadow-lg p-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">
-              Related Books
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {relatedBooks.map((relatedBook) => (
-                <Link
-                  key={relatedBook.id}
-                  to={`/books/${relatedBook.id}`}
-                  className="group"
-                >
-                  <div className="bg-gradient-to-br from-blue-100 to-purple-100 h-48 rounded-lg flex items-center justify-center mb-3 group-hover:shadow-md transition-shadow">
-                    <BookOpen className="h-16 w-16 text-blue-400" />
-                  </div>
-                  <h3 className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors line-clamp-2">
-                    {relatedBook.title}
-                  </h3>
-                  <p className="text-gray-600 text-sm">{relatedBook.author}</p>
-                  <p className="text-blue-600 font-semibold">
-                    ${relatedBook.price}
-                  </p>
-                </Link>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

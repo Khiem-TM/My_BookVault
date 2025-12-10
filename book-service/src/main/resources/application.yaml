@@ -1,3 +1,7 @@
+app:
+  api-prefix: /api/v1
+  google-books-api-key: ${GOOGLE_BOOKS_API_KEY:}
+
 server:
   port: 8086
 
@@ -15,12 +19,19 @@ spring:
     properties:
       hibernate:
         format_sql: true
-    open-in-view: false
+        enable_lazy_load_no_trans: true
+    open-in-view: true
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:kafka:9092}
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+  cache:
+    type: redis
+  data:
+    redis:
+      host: ${REDIS_HOST:redis}
+      port: ${REDIS_PORT:6379}
 
 logging:
   level:

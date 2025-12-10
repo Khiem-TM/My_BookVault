@@ -17,6 +17,12 @@ public class BookMapper {
         dto.setCategories(book.getCategories());
         dto.setPublishedAt(book.getPublishedAt());
         dto.setStatus(book.getStatus());
+        dto.setPublisher(book.getPublisher());
+        dto.setThumbnailUrl(book.getThumbnailUrl());
+        dto.setPageCount(book.getPageCount());
+        dto.setAverageRating(book.getAverageRating());
+        dto.setRatingsCount(book.getRatingsCount());
+        dto.setLanguage(book.getLanguage());
         return dto;
     }
 
@@ -31,6 +37,12 @@ public class BookMapper {
         book.setCategories(dto.getCategories());
         book.setPublishedAt(dto.getPublishedAt());
         book.setStatus(dto.getStatus());
+        book.setPublisher(dto.getPublisher());
+        book.setThumbnailUrl(dto.getThumbnailUrl());
+        book.setPageCount(dto.getPageCount());
+        book.setAverageRating(dto.getAverageRating());
+        book.setRatingsCount(dto.getRatingsCount());
+        book.setLanguage(dto.getLanguage());
         return book;
     }
 }

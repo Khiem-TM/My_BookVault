@@ -8,76 +8,64 @@ import {
   Star,
   BookOpen,
   Heart,
-  ShoppingCart,
 } from "lucide-react";
-import { seedBooks, categories } from "../../data/seedBooks";
+import { bookService } from "../../services/apiServices";
 
 export default function BooksList() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [books, setBooks] = useState(seedBooks);
-  const [filteredBooks, setFilteredBooks] = useState(seedBooks);
+  const [books, setBooks] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [categories, setCategories] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState(
     searchParams.get("search") || ""
   );
   const [selectedCategory, setSelectedCategory] = useState(
     searchParams.get("category") || "All Categories"
   );
-  const [sortBy, setSortBy] = useState("rating");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [priceRange, setPriceRange] = useState([0, 50]);
-  const [showFilters, setShowFilters] = useState(false);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
-  // Filter and search logic
+  // Fetch categories
   useEffect(() => {
-    let filtered = [...books];
+    bookService.getCategories().then((data) => {
+      setCategories(["All Categories", ...data]);
+    }).catch(console.error);
+  }, []);
 
-    // Search filter
-    if (searchTerm) {
-      filtered = filtered.filter(
-        (book) =>
-          book.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          book.author.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          book.tags.some((tag) =>
-            tag.toLowerCase().includes(searchTerm.toLowerCase())
-          )
-      );
-    }
-
-    // Category filter
-    if (selectedCategory && selectedCategory !== "All Categories") {
-      filtered = filtered.filter((book) => book.category === selectedCategory);
-    }
-
-    // Price range filter
-    filtered = filtered.filter(
-      (book) => book.price >= priceRange[0] && book.price <= priceRange[1]
-    );
-
-    // Sort
-    filtered.sort((a, b) => {
-      switch (sortBy) {
-        case "rating":
-          return b.rating - a.rating;
-        case "price-low":
-          return a.price - b.price;
-        case "price-high":
-          return b.price - a.price;
-        case "title":
-          return a.title.localeCompare(b.title);
-        case "author":
-          return a.author.localeCompare(b.author);
-        case "newest":
-          return (
-            new Date(b.publishDate).getTime() -
-            new Date(a.publishDate).getTime()
-          );
-        default:
-          return 0;
+  // Fetch books
+  useEffect(() => {
+    const fetchBooks = async () => {
+      setLoading(true);
+      try {
+        const query = searchTerm || undefined;
+        const category = selectedCategory !== "All Categories" ? selectedCategory : undefined;
+        
+        // Use the searchBooks endpoint which now maps to GET /books with params
+        const response = await bookService.searchBooks(query || "");
+        
+        // Since the current API might not support all filters perfectly yet, we'll adapt
+        // Ideally backend should handle pagination, category filtering etc.
+        // Assuming response structure matches what we expect or adapting it
+        
+        // If the API returns a PageResponse structure:
+        if (response.data) {
+            setBooks(response.data);
+            setTotalPages(response.totalPages);
+        } else if (Array.isArray(response)) {
+            // Fallback if it returns a list directly
+            setBooks(response);
+        }
+        
+      } catch (error) {
+        console.error("Error fetching books:", error);
+      } finally {
+        setLoading(false);
       }
-    });
+    };
 
-    setFilteredBooks(filtered);
-  }, [books, searchTerm, selectedCategory, sortBy, priceRange]);
+    fetchBooks();
+  }, [searchTerm, selectedCategory, page]);
 
   const handleSearchChange = (value: string) => {
     setSearchTerm(value);
@@ -88,6 +76,7 @@ export default function BooksList() {
       params.delete("search");
     }
     setSearchParams(params);
+    setPage(1); // Reset to first page on search
   };
 
   const handleCategoryChange = (category: string) => {
@@ -99,14 +88,29 @@ export default function BooksList() {
       params.delete("category");
     }
     setSearchParams(params);
+    setPage(1);
   };
 
-  const BookCard = ({ book }: { book: (typeof books)[0] }) => {
+  const BookCard = ({ book }: { book: any }) => {
+    // Determine image URL
+    const imageUrl = book.thumbnailUrl || "/api/placeholder/300/400";
+    const author = book.author || "Unknown Author";
+    const rating = book.averageRating || 0;
+    const reviewCount = book.ratingsCount || 0;
+    const price = book.price || "Free"; // Handle undefined price
+
     if (viewMode === "list") {
       return (
         <div className="bg-white rounded-lg shadow-md p-6 flex gap-6 hover:shadow-lg transition-shadow">
-          <div className="w-24 h-32 bg-gradient-to-br from-blue-100 to-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
-            <BookOpen className="h-12 w-12 text-blue-400" />
+          <div className="w-24 h-32 flex-shrink-0">
+             <img 
+                src={imageUrl} 
+                alt={book.title}
+                className="w-full h-full object-cover rounded-lg"
+                onError={(e) => {
+                    (e.target as HTMLImageElement).src = "/api/placeholder/300/400";
+                }}
+             />
           </div>
           <div className="flex-1">
             <div className="flex justify-between items-start">
@@ -114,14 +118,14 @@ export default function BooksList() {
                 <h3 className="text-xl font-bold text-gray-900 mb-2">
                   {book.title}
                 </h3>
-                <p className="text-gray-600 mb-2">by {book.author}</p>
+                <p className="text-gray-600 mb-2">by {author}</p>
                 <div className="flex items-center mb-3">
                   <div className="flex items-center">
                     {[...Array(5)].map((_, i) => (
                       <Star
                         key={i}
                         className={`h-4 w-4 ${
-                          i < Math.floor(book.rating)
+                          i < Math.floor(rating)
                             ? "text-yellow-400 fill-current"
                             : "text-gray-300"
                         }`}
@@ -129,14 +133,14 @@ export default function BooksList() {
                     ))}
                   </div>
                   <span className="text-sm text-gray-600 ml-2">
-                    {book.rating} ({book.reviews} reviews)
+                    {rating} ({reviewCount} reviews)
                   </span>
                 </div>
                 <p className="text-gray-600 mb-4 line-clamp-2">
                   {book.description}
                 </p>
                 <div className="flex flex-wrap gap-2 mb-4">
-                  {book.tags.slice(0, 3).map((tag) => (
+                  {book.categories && book.categories.slice(0, 3).map((tag: string) => (
                     <span
                       key={tag}
                       className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded"
@@ -148,7 +152,7 @@ export default function BooksList() {
               </div>
               <div className="text-right">
                 <div className="text-2xl font-bold text-blue-600 mb-4">
-                  ${book.price}
+                  {typeof price === 'number' ? `$${price}` : price}
                 </div>
                 <div className="flex flex-col gap-2">
                   <Link
@@ -171,39 +175,45 @@ export default function BooksList() {
 
     return (
       <div className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow group">
-        <div className="aspect-w-3 aspect-h-4 bg-gradient-to-br from-blue-100 to-purple-100 h-48 flex items-center justify-center relative">
-          <BookOpen className="h-16 w-16 text-blue-400" />
+        <div className="aspect-w-3 aspect-h-4 bg-gray-100 h-64 overflow-hidden relative">
+           <img 
+                src={imageUrl} 
+                alt={book.title}
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                    (e.target as HTMLImageElement).src = "/api/placeholder/300/400";
+                }}
+             />
           <button className="absolute top-4 right-4 p-2 bg-white rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity">
             <Heart className="h-4 w-4 text-gray-600" />
           </button>
         </div>
         <div className="p-6">
-          <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded mb-3 inline-block">
-            {book.category}
-          </span>
-          <h3 className="font-bold text-lg mb-2 line-clamp-2">{book.title}</h3>
-          <p className="text-gray-600 mb-3">by {book.author}</p>
+          {book.categories && book.categories.length > 0 && (
+            <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded mb-3 inline-block">
+                {book.categories[0]}
+            </span>
+          )}
+          <h3 className="font-bold text-lg mb-2 line-clamp-2" title={book.title}>{book.title}</h3>
+          <p className="text-gray-600 mb-3 line-clamp-1">by {author}</p>
           <div className="flex items-center mb-3">
             <div className="flex items-center">
               {[...Array(5)].map((_, i) => (
                 <Star
                   key={i}
                   className={`h-4 w-4 ${
-                    i < Math.floor(book.rating)
+                    i < Math.floor(rating)
                       ? "text-yellow-400 fill-current"
                       : "text-gray-300"
                   }`}
                 />
               ))}
             </div>
-            <span className="text-sm text-gray-600 ml-2">{book.rating}</span>
+            <span className="text-sm text-gray-600 ml-2">{rating}</span>
           </div>
-          <p className="text-gray-600 text-sm mb-4 line-clamp-2">
-            {book.description}
-          </p>
-          <div className="flex justify-between items-center">
+          <div className="flex justify-between items-center mt-4">
             <span className="text-xl font-bold text-blue-600">
-              ${book.price}
+               {typeof price === 'number' ? `$${price}` : price}
             </span>
             <Link
               to={`/books/${book.id}`}
@@ -261,20 +271,6 @@ export default function BooksList() {
               ))}
             </select>
 
-            {/* Sort */}
-            <select
-              className="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-            >
-              <option value="rating">Highest Rated</option>
-              <option value="price-low">Price: Low to High</option>
-              <option value="price-high">Price: High to Low</option>
-              <option value="title">Title A-Z</option>
-              <option value="author">Author A-Z</option>
-              <option value="newest">Newest First</option>
-            </select>
-
             {/* View Toggle */}
             <div className="flex border border-gray-300 rounded-lg overflow-hidden">
               <button
@@ -299,67 +295,39 @@ export default function BooksList() {
               </button>
             </div>
           </div>
-
-          {/* Advanced Filters Toggle */}
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className="flex items-center gap-2 text-blue-600 hover:text-blue-800 font-medium"
-          >
-            <Filter className="h-4 w-4" />
-            Advanced Filters
-          </button>
-
-          {/* Advanced Filters */}
-          {showFilters && (
-            <div className="mt-4 pt-4 border-t border-gray-200">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Price Range
-                  </label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="range"
-                      min="0"
-                      max="50"
-                      value={priceRange[1]}
-                      onChange={(e) =>
-                        setPriceRange([priceRange[0], parseInt(e.target.value)])
-                      }
-                      className="flex-1"
-                    />
-                    <span className="text-sm text-gray-600">
-                      ${priceRange[0]} - ${priceRange[1]}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Results */}
         <div className="flex justify-between items-center mb-6">
           <p className="text-gray-600">
-            Showing {filteredBooks.length} of {books.length} books
+            {loading ? "Loading..." : `Showing ${books.length} books`}
           </p>
         </div>
 
+        {/* Loading State */}
+        {loading && (
+            <div className="flex justify-center py-12">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            </div>
+        )}
+
         {/* Books Grid/List */}
-        <div
-          className={
-            viewMode === "grid"
-              ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
-              : "space-y-6"
-          }
-        >
-          {filteredBooks.map((book) => (
-            <BookCard key={book.id} book={book} />
-          ))}
-        </div>
+        {!loading && (
+            <div
+            className={
+                viewMode === "grid"
+                ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+                : "space-y-6"
+            }
+            >
+            {books.map((book) => (
+                <BookCard key={book.id} book={book} />
+            ))}
+            </div>
+        )}
 
         {/* Empty State */}
-        {filteredBooks.length === 0 && (
+        {!loading && books.length === 0 && (
           <div className="text-center py-12">
             <BookOpen className="h-16 w-16 text-gray-300 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">
@@ -372,19 +340,24 @@ export default function BooksList() {
         )}
 
         {/* Pagination */}
-        {filteredBooks.length > 0 && (
+        {!loading && books.length > 0 && totalPages > 1 && (
           <div className="mt-12 flex justify-center">
             <div className="flex space-x-2">
-              <button className="px-4 py-2 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50">
+              <button 
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className="px-4 py-2 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+              >
                 Previous
               </button>
-              <button className="px-4 py-2 bg-blue-600 text-white rounded-lg">
-                1
-              </button>
-              <button className="px-4 py-2 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50">
-                2
-              </button>
-              <button className="px-4 py-2 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50">
+              <span className="px-4 py-2 bg-blue-600 text-white rounded-lg">
+                {page}
+              </span>
+              <button 
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+                className="px-4 py-2 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+              >
                 Next
               </button>
             </div>

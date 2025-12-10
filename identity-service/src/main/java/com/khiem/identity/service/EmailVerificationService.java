@@ -17,33 +17,35 @@ import com.khiem.identity.repository.EmailVerificationTokenRepository;
 import com.khiem.identity.repository.PasswordResetTokenRepository;
 import com.khiem.identity.repository.UserRepository;
 
-import lombok.AccessLevel;
-import lombok.RequiredArgsConstructor;
-import lombok.experimental.FieldDefaults;
-import lombok.experimental.NonFinal;
 import lombok.extern.slf4j.Slf4j;
 
 @Service
-@RequiredArgsConstructor
-@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @Slf4j
 public class EmailVerificationService {
-    EmailVerificationTokenRepository emailVerificationTokenRepository;
-    PasswordResetTokenRepository passwordResetTokenRepository;
-    UserRepository userRepository;
-    KafkaTemplate<String, Object> kafkaTemplate;
+    private final EmailVerificationTokenRepository emailVerificationTokenRepository;
+    private final PasswordResetTokenRepository passwordResetTokenRepository;
+    private final UserRepository userRepository;
+    private final KafkaTemplate<String, Object> kafkaTemplate;
 
-    @NonFinal
     @Value("${app.email-verification-expiry-hours:24}")
-    int emailVerificationExpiryHours;
+    private int emailVerificationExpiryHours;
 
-    @NonFinal
     @Value("${app.password-reset-expiry-hours:24}")
-    int passwordResetExpiryHours;
+    private int passwordResetExpiryHours;
 
-    @NonFinal
     @Value("${app.frontend-url:http://localhost:3000}")
-    String frontendUrl;
+    private String frontendUrl;
+
+    public EmailVerificationService(
+            EmailVerificationTokenRepository emailVerificationTokenRepository,
+            PasswordResetTokenRepository passwordResetTokenRepository,
+            UserRepository userRepository,
+            KafkaTemplate<String, Object> kafkaTemplate) {
+        this.emailVerificationTokenRepository = emailVerificationTokenRepository;
+        this.passwordResetTokenRepository = passwordResetTokenRepository;
+        this.userRepository = userRepository;
+        this.kafkaTemplate = kafkaTemplate;
+    }
 
     public void sendEmailVerification(User user) {
         String token = UUID.randomUUID().toString();

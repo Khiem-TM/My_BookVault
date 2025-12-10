@@ -31,31 +31,27 @@ import com.nimbusds.jose.crypto.MACVerifier;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 
-import lombok.AccessLevel;
-import lombok.RequiredArgsConstructor;
-import lombok.experimental.FieldDefaults;
-import lombok.experimental.NonFinal;
 import lombok.extern.slf4j.Slf4j;
 
 @Service
-@RequiredArgsConstructor
 @Slf4j
-@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class AuthenticationService {
-    UserRepository userRepository;
-    InvalidatedTokenRepository invalidatedTokenRepository;
+    private final UserRepository userRepository;
+    private final InvalidatedTokenRepository invalidatedTokenRepository;
 
-    @NonFinal
     @Value("${jwt.signerKey}")
     protected String SIGNER_KEY;
 
-    @NonFinal
     @Value("${jwt.valid-duration}")
     protected long VALID_DURATION;
 
-    @NonFinal
     @Value("${jwt.refreshable-duration}")
     protected long REFRESHABLE_DURATION;
+
+    public AuthenticationService(UserRepository userRepository, InvalidatedTokenRepository invalidatedTokenRepository) {
+        this.userRepository = userRepository;
+        this.invalidatedTokenRepository = invalidatedTokenRepository;
+    }
 
     public IntrospectResponse introspect(IntrospectRequest request) {
         var token = request.getToken();
@@ -73,7 +69,7 @@ public class AuthenticationService {
 
     public AuthenticationResponse authenticate(AuthenticationRequest request) {
         var user = userRepository
-                .findByEmail(request.getUsername())
+                .findByUsername(request.getUsername())
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
 
         // Verify password

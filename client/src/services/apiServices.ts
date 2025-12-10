@@ -17,15 +17,15 @@ export const bookService = {
 
   // Search books
   searchBooks: async (query: string) => {
-    const response = await axiosInstance.get("/book/books/search", {
-      params: { query },
+    const response = await axiosInstance.get("/book/books", {
+      params: { keyword: query },
     });
     return response.data.result;
   },
 
   // Get categories
   getCategories: async () => {
-    const response = await axiosInstance.get("/book/categories");
+    const response = await axiosInstance.get("/book/books/categories");
     return response.data.result;
   },
 

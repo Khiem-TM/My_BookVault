@@ -1,12 +1,18 @@
 package com.khiem.book.controller;
 
+import com.khiem.book.dto.ApiResponse;
 import com.khiem.book.dto.BookDto;
+import com.khiem.book.dto.PageResponse;
 import com.khiem.book.service.BookCrudService;
 import jakarta.validation.Valid;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
+import java.util.List;
 
 @RestController
 @RequestMapping("/books")
@@ -14,31 +20,78 @@ import org.springframework.web.bind.annotation.*;
 public class BookController {
     private final BookCrudService service;
 
+    @GetMapping("/categories")
+    public ApiResponse<List<String>> getCategories() {
+        return ApiResponse.<List<String>>builder()
+                .result(service.getCategories())
+                .build();
+    }
+
     @GetMapping
-    public List<BookDto> getAll() {
-        return service.findAll();
+    public ApiResponse<PageResponse<BookDto>> getBooks(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String category,
+            @PageableDefault(size = 10) Pageable pageable) {
+        return ApiResponse.<PageResponse<BookDto>>builder()
+                .result(service.getBooks(keyword, category, pageable))
+                .build();
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<BookDto> getOne(@PathVariable Long id) {
-        BookDto dto = service.findById(id);
-        return dto == null ? ResponseEntity.notFound().build() : ResponseEntity.ok(dto);
+    public ApiResponse<BookDto> getOne(@PathVariable Long id) {
+        return ApiResponse.<BookDto>builder()
+                .result(service.findById(id))
+                .build();
+    }
+
+    @GetMapping("/statistics")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ApiResponse<Map<String, Object>> getStatistics() {
+        return ApiResponse.<Map<String, Object>>builder()
+                .result(service.getStatistics())
+                .build();
     }
 
     @PostMapping
-    public ResponseEntity<BookDto> create(@Valid @RequestBody BookDto dto) {
-        return ResponseEntity.ok(service.create(dto));
+    @PreAuthorize("hasRole('ADMIN')")
+    public ApiResponse<BookDto> create(@Valid @RequestBody BookDto dto) {
+        return ApiResponse.<BookDto>builder()
+                .result(service.create(dto))
+                .build();
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<BookDto> update(@PathVariable Long id, @Valid @RequestBody BookDto dto) {
-        return ResponseEntity.ok(service.update(id, dto));
+    @PreAuthorize("hasRole('ADMIN')")
+    public ApiResponse<BookDto> update(@PathVariable Long id, @Valid @RequestBody BookDto dto) {
+        return ApiResponse.<BookDto>builder()
+                .result(service.update(id, dto))
+                .build();
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
+    @PreAuthorize("hasRole('ADMIN')")
+    public ApiResponse<Void> delete(@PathVariable Long id) {
         service.delete(id);
-        return ResponseEntity.noContent().build();
+        return ApiResponse.<Void>builder()
+                .message("Book deleted successfully")
+                .build();
+    }
+
+    @PostMapping("/provision")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ApiResponse<Integer> provision(@RequestParam(defaultValue = "20") int count) {
+        return ApiResponse.<Integer>builder()
+                .result(service.provision(count))
+                .build();
+    }
+
+    @PostMapping("/import")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ApiResponse<Integer> importExternal(
+            @RequestParam String query,
+            @RequestParam(defaultValue = "10") int limit) {
+        return ApiResponse.<Integer>builder()
+                .result(service.importExternal(query, limit))
+                .build();
     }
 }
-

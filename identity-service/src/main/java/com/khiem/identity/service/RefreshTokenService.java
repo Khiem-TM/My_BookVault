@@ -13,21 +13,21 @@ import com.khiem.identity.exception.ErrorCode;
 import com.khiem.identity.repository.RefreshTokenRepository;
 
 import lombok.AccessLevel;
-import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import lombok.experimental.NonFinal;
 import lombok.extern.slf4j.Slf4j;
 
 @Service
-@RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @Slf4j
 public class RefreshTokenService {
     RefreshTokenRepository refreshTokenRepository;
 
-    @NonFinal
     @Value("${app.refresh-token-expiry-days:7}")
-    int refreshTokenExpiryDays;
+    private int refreshTokenExpiryDays;
+
+    public RefreshTokenService(RefreshTokenRepository refreshTokenRepository) {
+        this.refreshTokenRepository = refreshTokenRepository;
+    }
 
     public RefreshToken generateRefreshToken(User user) {
         String token = UUID.randomUUID().toString();

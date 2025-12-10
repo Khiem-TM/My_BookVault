@@ -1,5 +1,6 @@
 package com.khiem.book.dto;
 
+import java.io.Serializable;
 import java.time.LocalDate;
 import java.util.List;
 import jakarta.validation.constraints.NotBlank;
@@ -8,7 +9,8 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class BookDto {
+public class BookDto implements Serializable {
+    private static final long serialVersionUID = 1L;
     private Long id;
 
     @NotBlank
@@ -22,5 +24,11 @@ public class BookDto {
     private List<String> categories;
     private LocalDate publishedAt;
     private String status;
+    private String publisher;
+    private String thumbnailUrl;
+    private Integer pageCount;
+    private Double averageRating;
+    private Integer ratingsCount;
+    private String language;
 }
 
