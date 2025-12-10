@@ -48,6 +48,7 @@ public class UserController {
 
     @GetMapping("/my-info")
     ApiResponse<UserResponse> getMyInfo() {
+        log.info("Get current user info");
         return ApiResponse.<UserResponse>builder()
                 .result(userService.getMyInfo())
                 .build();

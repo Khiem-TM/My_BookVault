@@ -6,8 +6,20 @@ spring:
     name: review-service
   data:
     mongodb:
-      uri: mongodb://root:example@localhost:27017/bookvault?authSource=admin
-
+      uri: "mongodb://${MONGO_USERNAME:root}:${MONGO_PASSWORD:example}@${MONGO_HOST:mongodb}:27017/bookvault?authSource=admin"
   error:
     include-message: always
     include-binding-errors: always
+
+logging:
+  level:
+    root: INFO
+    com.khiem: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus

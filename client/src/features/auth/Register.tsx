@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../store/authStore";
-import { Mail, Lock, User, AlertCircle, Loader } from "lucide-react";
+import { User, Lock, Mail, AlertCircle, Loader } from "lucide-react";
 
 export default function Register() {
   const navigate = useNavigate();
@@ -23,6 +23,10 @@ export default function Register() {
       newErrors.email = "Invalid email";
     if (formData.password.length < 8)
       newErrors.password = "Password must be at least 8 characters";
+    if (formData.firstName.length < 1)
+      newErrors.firstName = "First name is required";
+    if (formData.lastName.length < 1)
+      newErrors.lastName = "Last name is required";
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -71,6 +75,7 @@ export default function Register() {
                   : "border-gray-300 focus:ring-blue-500"
               }`}
               placeholder="Choose a username"
+              required
             />
             {errors.username && (
               <p className="text-red-600 text-xs mt-1">{errors.username}</p>
@@ -93,6 +98,7 @@ export default function Register() {
                   : "border-gray-300 focus:ring-blue-500"
               }`}
               placeholder="your@email.com"
+              required
             />
             {errors.email && (
               <p className="text-red-600 text-xs mt-1">{errors.email}</p>
@@ -110,9 +116,17 @@ export default function Register() {
                 onChange={(e) =>
                   setFormData({ ...formData, firstName: e.target.value })
                 }
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
+                  errors.firstName
+                    ? "border-red-300 focus:ring-red-500"
+                    : "border-gray-300 focus:ring-blue-500"
+                }`}
                 placeholder="First"
+                required
               />
+              {errors.firstName && (
+                <p className="text-red-600 text-xs mt-1">{errors.firstName}</p>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -124,9 +138,17 @@ export default function Register() {
                 onChange={(e) =>
                   setFormData({ ...formData, lastName: e.target.value })
                 }
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
+                  errors.lastName
+                    ? "border-red-300 focus:ring-red-500"
+                    : "border-gray-300 focus:ring-blue-500"
+                }`}
                 placeholder="Last"
+                required
               />
+              {errors.lastName && (
+                <p className="text-red-600 text-xs mt-1">{errors.lastName}</p>
+              )}
             </div>
           </div>
 

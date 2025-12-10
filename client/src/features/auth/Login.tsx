@@ -1,21 +1,28 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../store/authStore";
-import { Mail, Lock, User, AlertCircle, Loader } from "lucide-react";
+import { User, Lock, AlertCircle, Loader } from "lucide-react";
 
 export default function Login() {
   const navigate = useNavigate();
   const { login, isLoading, error } = useAuthStore();
   const [formData, setFormData] = useState({
     username: "admin",
-    password: "admin",
+    password: "admin123",
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       await login(formData.username, formData.password);
-      navigate("/");
+
+      // Check if user is admin and redirect accordingly
+      const role = localStorage.getItem("role");
+      if (role === "ADMIN") {
+        navigate("/admin");
+      } else {
+        navigate("/");
+      }
     } catch (error) {
       console.error("Login error:", error);
     }

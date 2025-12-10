@@ -1,362 +1,333 @@
-import React, { useEffect, useState } from "react";
-import { api } from "../../services/apiClient";
+import { useEffect, useState } from "react";
+import { useAuthStore } from "../../store/authStore";
+import authService, { UserInfo } from "../../services/authService";
+import profileService, { UserProfile } from "../../services/profileService";
 import {
   User,
   Mail,
-  Book,
-  Heart,
-  Clock,
-  Award,
-  Settings,
-  Camera,
+  Calendar,
   Edit3,
   Save,
   X,
+  Loader,
+  AlertCircle,
+  CheckCircle,
 } from "lucide-react";
 
-interface UserStats {
-  totalBooksRead: number;
-  currentlyReading: number;
-  wishlistCount: number;
-  reviewsWritten: number;
-  favoriteGenre: string;
-  joinedDate: string;
-}
-
 export default function Profile() {
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [userId, setUserId] = useState<number | undefined>(undefined);
-  const [message, setMessage] = useState<string | undefined>();
+  const { user: authUser } = useAuthStore();
+  const [user, setUser] = useState<UserInfo | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isEditing, setIsEditing] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [message, setMessage] = useState<{
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
 
-  // Mock user stats for demo
-  const [userStats] = useState<UserStats>({
-    totalBooksRead: 45,
-    currentlyReading: 3,
-    wishlistCount: 12,
-    reviewsWritten: 28,
-    favoriteGenre: "Science Fiction",
-    joinedDate: "2023-01-15",
+  // Form state
+  const [formData, setFormData] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
   });
 
+  // Fetch user info
   useEffect(() => {
-    let mounted = true;
-    setLoading(true);
-    api
-      .get("/identity/users/my-info")
-      .then((r) => {
-        if (!mounted) return;
-        const u = r.data;
-        setUserId(u?.id);
-        setName(u?.name || "");
-        setEmail(u?.email || "");
-      })
-      .catch(() => setMessage("Failed to load profile information"))
-      .finally(() => setLoading(false));
-    return () => {
-      mounted = false;
-    };
+    loadUserInfo();
   }, []);
 
-  async function save() {
-    setMessage(undefined);
-    setLoading(true);
+  const loadUserInfo = async () => {
+    setIsLoading(true);
     try {
-      if (!userId) throw new Error("Missing user id");
-      await api.put(`/identity/users/${userId}`, { name, email });
-      setMessage("Profile updated successfully!");
-      setIsEditing(false);
-    } catch (e: any) {
-      setMessage(e?.message || "Failed to save profile");
+      const userInfo = await authService.getCurrentUser();
+      console.log("✅ User info loaded:", userInfo);
+      setUser(userInfo);
+
+      // Try to fetch profile from profile service
+      try {
+        const userProfile = await profileService.getMyProfile();
+        console.log("✅ User profile loaded:", userProfile);
+        setProfile(userProfile);
+        setFormData({
+          firstName: userProfile.firstName || userInfo.firstName,
+          lastName: userProfile.lastName || userInfo.lastName,
+          email: userProfile.email || userInfo.email,
+        });
+      } catch (profileError) {
+        console.warn(
+          "⚠️ Could not load profile from profile-service, using auth data:",
+          profileError
+        );
+        setFormData({
+          firstName: userInfo.firstName,
+          lastName: userInfo.lastName,
+          email: userInfo.email,
+        });
+      }
+    } catch (error) {
+      console.error("❌ Failed to load user profile:", error);
+      setMessage({
+        type: "error",
+        text: "Failed to load profile information",
+      });
+    } finally {
+      setIsLoading(false);
     }
-    setLoading(false);
-  }
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSave = async () => {
+    if (!user) return;
+
+    setIsLoading(true);
+    try {
+      // Try to update profile service first
+      let updated;
+      if (profile) {
+        updated = await profileService.updateMyProfile(formData);
+        setProfile(updated);
+      } else {
+        // Fallback to auth service update
+        updated = await authService.updateUser(user.id, formData);
+      }
+
+      setUser({
+        ...user,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+      });
+
+      setIsEditing(false);
+      setMessage({
+        type: "success",
+        text: "Profile updated successfully!",
+      });
+      setTimeout(() => setMessage(null), 3000);
+    } catch (error) {
+      console.error("❌ Failed to update profile:", error);
+      setMessage({
+        type: "error",
+        text: "Failed to update profile. Please try again.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleCancel = () => {
     setIsEditing(false);
-    setMessage(undefined);
-    // Reset form to original values if needed
+    if (user) {
+      setFormData({
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+      });
+    }
+    setMessage(null);
   };
 
-  if (loading && !userId) {
+  if (isLoading && !user) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <Loader className="animate-spin mx-auto mb-4" size={40} />
+          <p className="text-gray-600">Loading your profile...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white border-b">
-        <div className="max-w-6xl mx-auto px-4 py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                <User className="h-6 w-6 text-white" />
+    <div className="min-h-screen bg-gray-50 py-12 px-4">
+      <div className="max-w-2xl mx-auto">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold text-gray-900">My Profile</h1>
+          <p className="text-gray-600 mt-2">Manage your account information</p>
+        </div>
+
+        {/* Message Alert */}
+        {message && (
+          <div
+            className={`mb-6 p-4 rounded-lg flex items-center gap-3 ${
+              message.type === "success"
+                ? "bg-green-50 border border-green-200 text-green-700"
+                : "bg-red-50 border border-red-200 text-red-700"
+            }`}
+          >
+            {message.type === "success" ? (
+              <CheckCircle size={20} />
+            ) : (
+              <AlertCircle size={20} />
+            )}
+            <span>{message.text}</span>
+          </div>
+        )}
+
+        {/* Profile Card */}
+        {user && (
+          <div className="bg-white rounded-lg shadow-lg p-8">
+            {/* Avatar Section */}
+            <div className="flex items-center gap-6 mb-8 pb-8 border-b">
+              <div className="w-24 h-24 bg-gradient-to-br from-blue-400 to-indigo-600 rounded-full flex items-center justify-center">
+                <User className="text-white" size={48} />
               </div>
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">Profile</h1>
-                <p className="text-gray-600">
-                  Manage your account and reading preferences
-                </p>
+                <h2 className="text-2xl font-bold text-gray-900">
+                  {user.firstName} {user.lastName}
+                </h2>
+                <p className="text-gray-600">{user.username}</p>
+                <div className="mt-2 flex gap-2">
+                  {user.roles.map((role) => (
+                    <span
+                      key={role.id}
+                      className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium"
+                    >
+                      {role.name}
+                    </span>
+                  ))}
+                </div>
               </div>
             </div>
 
-            <button
-              onClick={() => setIsEditing(!isEditing)}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              {isEditing ? (
-                <X className="h-4 w-4" />
-              ) : (
-                <Edit3 className="h-4 w-4" />
-              )}
-              {isEditing ? "Cancel" : "Edit Profile"}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div className="max-w-6xl mx-auto px-4 py-8">
-        <div className="grid lg:grid-cols-3 gap-8">
-          {/* Profile Information */}
-          <div className="lg:col-span-2">
-            <div className="bg-white rounded-xl shadow-lg p-8">
-              <div className="flex items-center gap-6 mb-8">
-                {/* Avatar */}
-                <div className="relative">
-                  <div className="w-24 h-24 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                    <User className="h-12 w-12 text-white" />
+            {/* Profile Info */}
+            {!isEditing ? (
+              <div className="space-y-6">
+                {/* Name */}
+                <div className="flex items-center gap-4">
+                  <User className="text-gray-400" size={20} />
+                  <div className="flex-1">
+                    <label className="text-sm text-gray-500">Full Name</label>
+                    <p className="text-lg font-medium text-gray-900">
+                      {user.firstName} {user.lastName}
+                    </p>
                   </div>
-                  {isEditing && (
-                    <button className="absolute -bottom-2 -right-2 w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white hover:bg-blue-700 transition-colors">
-                      <Camera className="h-4 w-4" />
-                    </button>
-                  )}
                 </div>
 
-                <div className="flex-1">
-                  <h2 className="text-2xl font-bold text-gray-900">
-                    {name || "Your Name"}
-                  </h2>
-                  <p className="text-gray-600">
-                    {email || "your.email@example.com"}
-                  </p>
-                  <p className="text-sm text-gray-500 mt-1">
-                    Member since{" "}
-                    {new Date(userStats.joinedDate).toLocaleDateString(
-                      "en-US",
-                      {
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric",
-                      }
+                {/* Email */}
+                <div className="flex items-center gap-4">
+                  <Mail className="text-gray-400" size={20} />
+                  <div className="flex-1">
+                    <label className="text-sm text-gray-500">Email</label>
+                    <p className="text-lg font-medium text-gray-900">
+                      {user.email}
+                    </p>
+                    {user.emailVerified ? (
+                      <span className="text-sm text-green-600">✓ Verified</span>
+                    ) : (
+                      <span className="text-sm text-yellow-600">
+                        ⚠ Not verified
+                      </span>
                     )}
-                  </p>
+                  </div>
+                </div>
+
+                {/* Username */}
+                <div className="flex items-center gap-4">
+                  <Calendar className="text-gray-400" size={20} />
+                  <div className="flex-1">
+                    <label className="text-sm text-gray-500">Username</label>
+                    <p className="text-lg font-medium text-gray-900">
+                      {user.username}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Edit Button */}
+                <div className="pt-4 border-t">
+                  <button
+                    onClick={() => setIsEditing(true)}
+                    className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                  >
+                    <Edit3 size={18} />
+                    Edit Profile
+                  </button>
                 </div>
               </div>
-
-              {/* Message Display */}
-              {message && (
-                <div
-                  className={`mb-6 p-4 rounded-lg ${
-                    message.includes("success") || message.includes("Saved")
-                      ? "bg-green-50 border border-green-200 text-green-700"
-                      : "bg-red-50 border border-red-200 text-red-700"
-                  }`}
-                >
-                  {message}
-                </div>
-              )}
-
-              {/* Edit Form */}
-              {isEditing && (
-                <div className="space-y-6">
-                  <div className="grid md:grid-cols-2 gap-6">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Full Name
-                      </label>
-                      <div className="relative">
-                        <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                        <input
-                          type="text"
-                          value={name}
-                          onChange={(e) => setName(e.target.value)}
-                          className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          placeholder="Enter your full name"
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Email Address
-                      </label>
-                      <div className="relative">
-                        <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                        <input
-                          type="email"
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                          className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          placeholder="Enter your email address"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-4 pt-4 border-t">
-                    <button
-                      onClick={save}
-                      disabled={loading}
-                      className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {loading ? (
-                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                      ) : (
-                        <Save className="h-4 w-4" />
-                      )}
-                      {loading ? "Saving..." : "Save Changes"}
-                    </button>
-                    <button
-                      onClick={handleCancel}
-                      className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Profile Information Display */}
-              {!isEditing && (
-                <div className="space-y-4">
-                  <div className="flex items-center gap-3">
-                    <User className="h-5 w-5 text-gray-400" />
-                    <span className="text-gray-600">Name:</span>
-                    <span className="font-medium">
-                      {name || "Not provided"}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Mail className="h-5 w-5 text-gray-400" />
-                    <span className="text-gray-600">Email:</span>
-                    <span className="font-medium">
-                      {email || "Not provided"}
-                    </span>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Reading Statistics */}
-          <div className="space-y-6">
-            {/* Stats Overview */}
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-                <Award className="h-5 w-5 text-blue-600" />
-                Reading Stats
-              </h3>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <Book className="h-5 w-5 text-blue-600" />
-                    <span className="text-gray-700">Books Read</span>
-                  </div>
-                  <span className="text-2xl font-bold text-blue-600">
-                    {userStats.totalBooksRead}
-                  </span>
-                </div>
-
-                <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-5 w-5 text-yellow-600" />
-                    <span className="text-gray-700">Currently Reading</span>
-                  </div>
-                  <span className="text-2xl font-bold text-yellow-600">
-                    {userStats.currentlyReading}
-                  </span>
-                </div>
-
-                <div className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <Heart className="h-5 w-5 text-red-600" />
-                    <span className="text-gray-700">Wishlist</span>
-                  </div>
-                  <span className="text-2xl font-bold text-red-600">
-                    {userStats.wishlistCount}
-                  </span>
-                </div>
-
-                <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <Edit3 className="h-5 w-5 text-green-600" />
-                    <span className="text-gray-700">Reviews Written</span>
-                  </div>
-                  <span className="text-2xl font-bold text-green-600">
-                    {userStats.reviewsWritten}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Preferences */}
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-                <Settings className="h-5 w-5 text-blue-600" />
-                Preferences
-              </h3>
-              <div className="space-y-4">
+            ) : (
+              // Edit Mode
+              <form className="space-y-6">
+                {/* First Name */}
                 <div>
-                  <span className="text-gray-600">Favorite Genre:</span>
-                  <div className="mt-1">
-                    <span className="inline-block bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
-                      {userStats.favoriteGenre}
-                    </span>
-                  </div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    First Name
+                  </label>
+                  <input
+                    type="text"
+                    name="firstName"
+                    value={formData.firstName}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
                 </div>
-              </div>
-            </div>
 
-            {/* Account Settings */}
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <h3 className="text-xl font-bold text-gray-900 mb-4">
-                Account Settings
-              </h3>
-              <div className="space-y-3">
-                <button className="w-full text-left p-3 hover:bg-gray-50 rounded-lg transition-colors">
-                  <div className="font-medium text-gray-900">
-                    Change Password
-                  </div>
-                  <div className="text-sm text-gray-600">
-                    Update your account password
-                  </div>
-                </button>
-                <button className="w-full text-left p-3 hover:bg-gray-50 rounded-lg transition-colors">
-                  <div className="font-medium text-gray-900">
-                    Email Preferences
-                  </div>
-                  <div className="text-sm text-gray-600">
-                    Manage notification settings
-                  </div>
-                </button>
-                <button className="w-full text-left p-3 hover:bg-gray-50 rounded-lg transition-colors">
-                  <div className="font-medium text-gray-900">
-                    Privacy Settings
-                  </div>
-                  <div className="text-sm text-gray-600">
-                    Control your data and privacy
-                  </div>
-                </button>
-              </div>
-            </div>
+                {/* Last Name */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Last Name
+                  </label>
+                  <input
+                    type="text"
+                    name="lastName"
+                    value={formData.lastName}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                {/* Email */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                {/* Buttons */}
+                <div className="flex gap-4 pt-4 border-t">
+                  <button
+                    type="button"
+                    onClick={handleSave}
+                    disabled={isLoading}
+                    className="flex items-center gap-2 px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition disabled:opacity-50"
+                  >
+                    {isLoading ? (
+                      <>
+                        <Loader className="animate-spin" size={18} />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Save size={18} />
+                        Save Changes
+                      </>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCancel}
+                    className="flex items-center gap-2 px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
+                  >
+                    <X size={18} />
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

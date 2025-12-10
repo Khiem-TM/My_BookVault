@@ -2,17 +2,32 @@ server:
   port: 8084
   servlet:
     context-path: /file
+
 spring:
   application:
     name: file-service
   data:
     mongodb:
-      uri: mongodb://root:root@localhost:27017/file-service?authSource=admin
+      uri: "mongodb://${MONGO_USERNAME:root}:${MONGO_PASSWORD:root}@${MONGO_HOST:mongodb}:27017/file-service?authSource=admin"
   servlet:
     multipart:
-      max-file-size: 5MB
-      max-request-size: 5MB
+      max-file-size: ${FILE_MAX_SIZE:5MB}
+      max-request-size: ${FILE_MAX_SIZE:5MB}
+
+logging:
+  level:
+    root: INFO
+    com.khiem: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+
 app:
   file:
-    storage-dir: C:/upload
-    download-prefix: http://localhost:8888/api/v1/file/media/download/
+    storage-dir: /uploads
+    download-prefix: "http://${API_GATEWAY_HOST:api-gateway}:8888/api/v1/file/media/download/"
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus

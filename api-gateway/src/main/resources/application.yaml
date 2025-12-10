@@ -9,17 +9,18 @@ spring:
     name: api-gateway
   data:
     redis:
-      host: localhost
-      port: 6379
+      host: ${REDIS_HOST:redis}
+      port: ${REDIS_PORT:6379}
   cloud:
     gateway:
       globalcors:
         add-to-simple-url-handler-mapping: true
         corsConfigurations:
-          '[/**]':
+          "[/**]":
             allowedOrigins:
-              - http://localhost:4173
-              - http://localhost:3000
+              - "http://localhost:4173"
+              - "http://localhost:3000"
+              - "${FRONTEND_URL:http://localhost:3000}"
             allowedMethods:
               - GET
               - POST
@@ -33,6 +34,7 @@ spring:
             allowCredentials: true
             maxAge: 3600
       default-filters:
+        - name: AuthenticationFilter
         - name: CircuitBreaker
           args:
             name: defaultCB
@@ -169,3 +171,20 @@ spring:
               args:
                 retries: 2
                 statuses: BAD_GATEWAY, SERVICE_UNAVAILABLE, GATEWAY_TIMEOUT
+
+logging:
+  level:
+    root: INFO
+    com.khiem: DEBUG
+    org.springframework.cloud.gateway: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always

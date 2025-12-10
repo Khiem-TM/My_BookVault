@@ -20,6 +20,7 @@ import com.khiem.identity.repository.UserRepository;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import lombok.experimental.NonFinal;
 import lombok.extern.slf4j.Slf4j;
 
 @Service
@@ -32,12 +33,15 @@ public class EmailVerificationService {
     UserRepository userRepository;
     KafkaTemplate<String, Object> kafkaTemplate;
 
+    @NonFinal
     @Value("${app.email-verification-expiry-hours:24}")
     int emailVerificationExpiryHours;
 
+    @NonFinal
     @Value("${app.password-reset-expiry-hours:24}")
     int passwordResetExpiryHours;
 
+    @NonFinal
     @Value("${app.frontend-url:http://localhost:3000}")
     String frontendUrl;
 

@@ -15,6 +15,7 @@ import com.khiem.identity.repository.RefreshTokenRepository;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import lombok.experimental.NonFinal;
 import lombok.extern.slf4j.Slf4j;
 
 @Service
@@ -24,6 +25,7 @@ import lombok.extern.slf4j.Slf4j;
 public class RefreshTokenService {
     RefreshTokenRepository refreshTokenRepository;
 
+    @NonFinal
     @Value("${app.refresh-token-expiry-days:7}")
     int refreshTokenExpiryDays;
 

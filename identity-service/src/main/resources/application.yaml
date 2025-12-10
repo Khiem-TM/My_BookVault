@@ -7,7 +7,7 @@ spring:
   application:
     name: identity-service
   datasource:
-    url: "jdbc:mysql://${DB_HOST:mysql}:3306/bookteria_identity?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true"
+    url: "jdbc:mysql://${DB_HOST:mysql}:3306/bookvault_identity?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true"
     driverClassName: "com.mysql.cj.jdbc.Driver"
     username: ${DB_USERNAME:root}
     password: ${DB_PASSWORD:root}
@@ -20,15 +20,32 @@ spring:
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all
+    properties:
+      auto.create.topics.enable: true
+
+logging:
+  level:
+    root: INFO
+    com.khiem: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+
 jwt:
   signerKey: "1TjXchw5FloESb63Kc+DFhTARvpWL4jUGCwfGWxuG5SIf/1y/LgJxHnMqaF6A/ij"
-  valid-duration: 3600 # in second
+  valid-duration: 3600 # in seconds
   refreshable-duration: 36000 # in seconds
 
 app:
   services:
-    profile: http://localhost:8081/profile
+    profile: "http://${PROFILE_SERVICE_HOST:profile-service}:8081/profile"
   email-verification-expiry-hours: 24
   password-reset-expiry-hours: 24
   refresh-token-expiry-days: 7
-  frontend-url: http://localhost:3000
+  frontend-url: ${FRONTEND_URL:http://localhost:3000}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus

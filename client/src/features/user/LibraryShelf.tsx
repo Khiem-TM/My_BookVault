@@ -164,8 +164,7 @@ export default function LibraryShelf() {
           <div className="flex flex-wrap gap-2">
             {(["WISHLIST", "READING", "READ"] as const).map((shelfType) => {
               const Icon = getShelfIcon(shelfType);
-              const count =
-                shelfType === "read" ? stats.read : stats[shelfType];
+              const count = stats[shelfType as 'WISHLIST'|'READING'|'READ']
               return (
                 <button
                   key={shelfType}
