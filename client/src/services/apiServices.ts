@@ -317,6 +317,74 @@ export const notificationService = {
   },
 };
 
+export const playlistService = {
+  // Get all user playlists
+  getUserPlaylists: async () => {
+    const response = await axiosInstance.get("/library/playlists");
+    return response.data.result;
+  },
+
+  // Get playlist detail
+  getPlaylistDetail: async (playlistId: string) => {
+    const response = await axiosInstance.get(
+      `/library/playlists/${playlistId}`
+    );
+    return response.data.result;
+  },
+
+  // Create playlist
+  createPlaylist: async (name: string, description?: string) => {
+    const response = await axiosInstance.post(`/library/playlists`, {
+      name,
+      description,
+    });
+    return response.data.result;
+  },
+
+  // Update playlist
+  updatePlaylist: async (
+    playlistId: string,
+    name: string,
+    description?: string
+  ) => {
+    const response = await axiosInstance.put(
+      `/library/playlists/${playlistId}`,
+      { name, description }
+    );
+    return response.data.result;
+  },
+
+  // Delete playlist
+  deletePlaylist: async (playlistId: string) => {
+    await axiosInstance.delete(`/library/playlists/${playlistId}`);
+  },
+
+  // Add book to playlist
+  addBookToPlaylist: async (playlistId: string, bookId: string) => {
+    const response = await axiosInstance.post(
+      `/library/playlists/${playlistId}/books/${bookId}`
+    );
+    return response.data.result;
+  },
+
+  // Remove book from playlist
+  removeBookFromPlaylist: async (playlistId: string, bookId: string) => {
+    const response = await axiosInstance.delete(
+      `/library/playlists/${playlistId}/books/${bookId}`
+    );
+    return response.data.result;
+  },
+
+  // Reorder books in playlist
+  reorderPlaylistBooks: async (playlistId: string, bookIds: string[]) => {
+    const response = await axiosInstance.post(
+      `/library/playlists/${playlistId}/reorder`,
+      bookIds
+    );
+    return response.data.result;
+  },
+};
+
 export default {
   bookService,
   reviewService,
@@ -329,4 +397,5 @@ export default {
   paymentService,
   transactionService,
   notificationService,
+  playlistService,
 };

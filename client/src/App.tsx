@@ -4,6 +4,7 @@ import Home from "./features/user/Home";
 import BooksList from "./features/user/BooksList";
 import BookDetail from "./features/user/BookDetail";
 import Orders from "./features/user/Orders";
+import MyPlaylist from "./features/user/MyPlaylist";
 import LibraryShelf from "./features/user/LibraryShelf";
 import Profile from "./features/user/Profile";
 import Genres from "./features/user/Genres";
@@ -87,6 +88,7 @@ export default function App() {
         <Route path="books" element={<BooksList />} />
         <Route path="books/:id" element={<BookDetail />} />
         <Route path="orders" element={<Orders />} />
+        <Route path="playlists" element={<MyPlaylist />} />
         <Route path="library" element={<LibraryShelf />} />
         <Route path="profile" element={<Profile />} />
         <Route path="genres" element={<Genres />} />

@@ -7,446 +7,380 @@ import {
   Clock,
   CheckCircle,
   XCircle,
-  Truck,
   CreditCard,
-  Filter,
   Search,
   Calendar,
   DollarSign,
   BookOpen,
-  User,
+  RotateCcw,
+  AlertCircle,
 } from "lucide-react";
-import { seedBooks } from "../../data/seedBooks";
 
 interface Order {
   id: string;
   userId: string;
   bookId: string;
-  status: "PENDING" | "CONFIRMED" | "SHIPPED" | "DELIVERED" | "CANCELLED";
-  orderDate: string;
-  deliveryDate?: string;
-  totalAmount: number;
-  quantity: number;
-  shippingAddress: string;
+  status: "PENDING" | "PAID" | "CANCELLED" | "RETURNED" | "OVERDUE";
+  orderType: "BUY" | "RENT";
+  createdAt: string;
+  updatedAt?: string;
+  totalPrice?: number;
+  paymentMethod?: string;
+  notes?: string;
+  rentalStartDate?: string;
+  rentalEndDate?: string;
+  rentalDays?: number;
+  rentalPrice?: number;
+  bookTitle?: string;
+  bookAuthor?: string;
 }
+
+const mockOrders: Order[] = [
+  {
+    id: "1",
+    userId: "1",
+    bookId: "1",
+    status: "PAID",
+    orderType: "BUY",
+    createdAt: "2025-12-08T10:30:00Z",
+    totalPrice: 19.99,
+    bookTitle: "The Great Gatsby",
+    bookAuthor: "F. Scott Fitzgerald",
+  },
+  {
+    id: "2",
+    userId: "1",
+    bookId: "2",
+    status: "PENDING",
+    orderType: "RENT",
+    createdAt: "2025-12-09T14:15:00Z",
+    rentalDays: 14,
+    rentalPrice: 9.99,
+    rentalStartDate: "2025-12-09T14:15:00Z",
+    rentalEndDate: "2025-12-23T14:15:00Z",
+    bookTitle: "To Kill a Mockingbird",
+    bookAuthor: "Harper Lee",
+  },
+  {
+    id: "3",
+    userId: "1",
+    bookId: "3",
+    status: "RETURNED",
+    orderType: "RENT",
+    createdAt: "2025-11-28T09:00:00Z",
+    rentalDays: 7,
+    rentalPrice: 4.99,
+    rentalStartDate: "2025-11-28T09:00:00Z",
+    rentalEndDate: "2025-12-05T09:00:00Z",
+    bookTitle: "1984",
+    bookAuthor: "George Orwell",
+  },
+];
 
 export default function Orders() {
   const qc = useQueryClient();
-  const userId = 1;
+  const userId = "1";
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
+  const [orderTypeFilter, setOrderTypeFilter] = useState<string>("ALL");
   const [searchTerm, setSearchTerm] = useState("");
 
-  const { data, isLoading, error } = useQuery({
+  const { data: orders = mockOrders, isLoading } = useQuery({
     queryKey: ["orders", userId],
-    queryFn: async () =>
-      (await api.get(`/order/orders/by-user/${userId}`)).data,
+    queryFn: async () => {
+      try {
+        const response = await api.get(`/order/orders/by-user/${userId}`);
+        return response.data || mockOrders;
+      } catch (err) {
+        console.log("Using mock orders data");
+        return mockOrders;
+      }
+    },
+    enabled: !!userId,
   });
 
-  const create = useMutation({
-    mutationFn: async (bookId: string) =>
-      (await api.post("/order/orders", { userId, bookId })).data,
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["orders", userId] });
-      alert("Order created successfully!");
-    },
+  // Filter logic
+  const filteredOrders = (orders || []).filter((order) => {
+    const matchesStatus =
+      statusFilter === "ALL" || order.status === statusFilter;
+    const matchesType =
+      orderTypeFilter === "ALL" || order.orderType === orderTypeFilter;
+    const matchesSearch =
+      !searchTerm ||
+      order.bookTitle?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order.id.includes(searchTerm);
+    return matchesStatus && matchesType && matchesSearch;
   });
 
-  // Mock data for demo purposes when API returns empty
-  const mockOrders: Order[] = [
-    {
-      id: "1",
-      userId: "1",
-      bookId: "1",
-      status: "DELIVERED",
-      orderDate: "2024-11-15",
-      deliveryDate: "2024-11-20",
-      totalAmount: 25.99,
-      quantity: 1,
-      shippingAddress: "123 Main St, City, State 12345",
-    },
-    {
-      id: "2",
-      userId: "1",
-      bookId: "2",
-      status: "SHIPPED",
-      orderDate: "2024-11-25",
-      totalAmount: 18.5,
-      quantity: 1,
-      shippingAddress: "123 Main St, City, State 12345",
-    },
-    {
-      id: "3",
-      userId: "1",
-      bookId: "3",
-      status: "CONFIRMED",
-      orderDate: "2024-12-01",
-      totalAmount: 32.75,
-      quantity: 2,
-      shippingAddress: "123 Main St, City, State 12345",
-    },
-    {
-      id: "4",
-      userId: "1",
-      bookId: "4",
-      status: "PENDING",
-      orderDate: "2024-12-05",
-      totalAmount: 22.99,
-      quantity: 1,
-      shippingAddress: "123 Main St, City, State 12345",
-    },
-  ];
-
-  const orders = data && data.length > 0 ? data : mockOrders;
-
-  const filteredOrders = orders
-    .filter(
-      (order: Order) => statusFilter === "ALL" || order.status === statusFilter
-    )
-    .filter((order: Order) => {
-      if (!searchTerm) return true;
-      const book = seedBooks.find((book) => book.id === order.bookId);
-      if (!book) return false;
-      return (
-        book.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        order.id.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    });
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case "PENDING":
-        return Clock;
-      case "CONFIRMED":
-        return CheckCircle;
-      case "SHIPPED":
-        return Truck;
-      case "DELIVERED":
-        return Package;
-      case "CANCELLED":
-        return XCircle;
-      default:
-        return Package;
-    }
+  // Calculate stats
+  const stats = {
+    total: orders?.length || 0,
+    pending: orders?.filter((o) => o.status === "PENDING").length || 0,
+    rentals: orders?.filter((o) => o.orderType === "RENT").length || 0,
+    purchases: orders?.filter((o) => o.orderType === "BUY").length || 0,
   };
 
+  // Check if rental is overdue
+  const isOverdue = (order: Order) => {
+    if (order.orderType !== "RENT" || !order.rentalEndDate) return false;
+    return new Date(order.rentalEndDate) < new Date();
+  };
+
+  // Status badge color
   const getStatusColor = (status: string) => {
     switch (status) {
+      case "PAID":
+      case "RETURNED":
+        return "bg-green-100 text-green-800";
       case "PENDING":
-        return "text-yellow-600 bg-yellow-50 border-yellow-200";
-      case "CONFIRMED":
-        return "text-blue-600 bg-blue-50 border-blue-200";
-      case "SHIPPED":
-        return "text-purple-600 bg-purple-50 border-purple-200";
-      case "DELIVERED":
-        return "text-green-600 bg-green-50 border-green-200";
+        return "bg-yellow-100 text-yellow-800";
       case "CANCELLED":
-        return "text-red-600 bg-red-50 border-red-200";
+        return "bg-red-100 text-red-800";
+      case "OVERDUE":
+        return "bg-orange-100 text-orange-800";
       default:
-        return "text-gray-600 bg-gray-50 border-gray-200";
+        return "bg-gray-100 text-gray-800";
     }
   };
 
-  const getOrderStats = () => {
-    const stats = {
-      total: orders.length,
-      pending: orders.filter((order: Order) => order.status === "PENDING")
-        .length,
-      shipped: orders.filter((order: Order) => order.status === "SHIPPED")
-        .length,
-      delivered: orders.filter((order: Order) => order.status === "DELIVERED")
-        .length,
-    };
-    return stats;
+  // Status icon
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case "PAID":
+      case "RETURNED":
+        return <CheckCircle className="h-5 w-5" />;
+      case "PENDING":
+        return <Clock className="h-5 w-5" />;
+      case "CANCELLED":
+        return <XCircle className="h-5 w-5" />;
+      case "OVERDUE":
+        return <AlertCircle className="h-5 w-5" />;
+      default:
+        return <Package className="h-5 w-5" />;
+    }
   };
 
-  const stats = getOrderStats();
-
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="bg-white border-b">
-        <div className="max-w-6xl mx-auto px-4 py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-blue-600 rounded-full flex items-center justify-center">
-                <Package className="h-6 w-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900">My Orders</h1>
-                <p className="text-gray-600">
-                  Track and manage your book orders
-                </p>
-              </div>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+      <div className="max-w-6xl mx-auto px-4 py-6">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-blue-600 rounded-full flex items-center justify-center">
+              <Package className="h-6 w-6 text-white" />
             </div>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">My Orders</h1>
+              <p className="text-gray-600">
+                Track your book purchases and rentals
+              </p>
+            </div>
+          </div>
 
-            {/* Stats Overview */}
-            <div className="hidden md:flex items-center gap-6">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-gray-900">
-                  {stats.total}
-                </div>
-                <div className="text-sm text-gray-600">Total Orders</div>
+          {/* Stats Overview */}
+          <div className="hidden md:grid grid-cols-4 gap-4">
+            <div className="text-center p-4 bg-white rounded-lg shadow">
+              <div className="text-2xl font-bold text-gray-900">
+                {stats.total}
               </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-yellow-600">
-                  {stats.pending}
-                </div>
-                <div className="text-sm text-gray-600">Pending</div>
+              <div className="text-sm text-gray-600">Total Orders</div>
+            </div>
+            <div className="text-center p-4 bg-white rounded-lg shadow">
+              <div className="text-2xl font-bold text-yellow-600">
+                {stats.pending}
               </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-purple-600">
-                  {stats.shipped}
-                </div>
-                <div className="text-sm text-gray-600">Shipped</div>
+              <div className="text-sm text-gray-600">Pending</div>
+            </div>
+            <div className="text-center p-4 bg-white rounded-lg shadow">
+              <div className="text-2xl font-bold text-blue-600">
+                {stats.rentals}
               </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-green-600">
-                  {stats.delivered}
-                </div>
-                <div className="text-sm text-gray-600">Delivered</div>
+              <div className="text-sm text-gray-600">Rentals</div>
+            </div>
+            <div className="text-center p-4 bg-white rounded-lg shadow">
+              <div className="text-2xl font-bold text-green-600">
+                {stats.purchases}
               </div>
+              <div className="text-sm text-gray-600">Purchases</div>
             </div>
           </div>
         </div>
-      </div>
 
-      <div className="max-w-6xl mx-auto px-4 py-8">
-        {/* Filters and Search */}
-        <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
-          <div className="flex flex-wrap gap-2">
-            {[
-              "ALL",
-              "PENDING",
-              "CONFIRMED",
-              "SHIPPED",
-              "DELIVERED",
-              "CANCELLED",
-            ].map((status) => {
-              const count =
-                status === "ALL"
-                  ? orders.length
-                  : orders.filter((o: Order) => o.status === status).length;
-              return (
-                <button
-                  key={status}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
-                    statusFilter === status
-                      ? "bg-blue-600 text-white shadow-lg"
-                      : "bg-white text-gray-600 hover:bg-gray-50 border"
-                  }`}
-                  onClick={() => setStatusFilter(status)}
-                >
-                  {status !== "ALL" &&
-                    React.createElement(getStatusIcon(status), {
-                      className: "h-4 w-4",
-                    })}
-                  {status.charAt(0) + status.slice(1).toLowerCase()}
-                  <span
-                    className={`text-xs px-2 py-1 rounded-full ${
-                      statusFilter === status ? "bg-white/20" : "bg-gray-100"
-                    }`}
-                  >
-                    {count}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Search and Create Order */}
-          <div className="flex items-center gap-4">
+        {/* Filters */}
+        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Search */}
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Search className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
               <input
                 type="text"
-                placeholder="Search orders..."
+                placeholder="Search by book title or order ID..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
 
-            <button
-              onClick={() => create.mutate("1")}
-              disabled={create.isPending}
-              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
+            {/* Status Filter */}
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              {create.isPending ? (
-                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-              ) : (
-                <Package className="h-4 w-4" />
-              )}
-              {create.isPending ? "Creating..." : "Create Order"}
-            </button>
+              <option value="ALL">All Status</option>
+              <option value="PENDING">Pending</option>
+              <option value="PAID">Paid</option>
+              <option value="CANCELLED">Cancelled</option>
+              <option value="RETURNED">Returned</option>
+              <option value="OVERDUE">Overdue</option>
+            </select>
+
+            {/* Order Type Filter */}
+            <select
+              value={orderTypeFilter}
+              onChange={(e) => setOrderTypeFilter(e.target.value)}
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="ALL">All Types</option>
+              <option value="BUY">Purchase</option>
+              <option value="RENT">Rental</option>
+            </select>
           </div>
         </div>
 
-        {/* Loading State */}
-        {isLoading && (
-          <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-          </div>
-        )}
-
-        {/* Error State */}
-        {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700 mb-6">
-            Error loading orders: {(error as any).message}
-          </div>
-        )}
-
-        {/* Empty State */}
-        {!isLoading && filteredOrders.length === 0 && (
+        {/* Orders List */}
+        {isLoading ? (
           <div className="text-center py-12">
-            <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Package className="h-12 w-12 text-gray-400" />
-            </div>
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">
-              {searchTerm ? "No orders found" : "No orders yet"}
+            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            <p className="mt-4 text-gray-600">Loading orders...</p>
+          </div>
+        ) : filteredOrders.length === 0 ? (
+          <div className="text-center py-12 bg-white rounded-lg">
+            <Package className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-gray-700">
+              No orders found
             </h3>
-            <p className="text-gray-600 mb-6">
-              {searchTerm
-                ? `No orders match "${searchTerm}"`
-                : "Start browsing books and place your first order"}
+            <p className="text-gray-500 mt-2">
+              {searchTerm || statusFilter !== "ALL" || orderTypeFilter !== "ALL"
+                ? "Try adjusting your filters"
+                : "Start ordering books now!"}
             </p>
             <Link
               to="/books"
-              className="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="inline-block mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
             >
-              <BookOpen className="h-5 w-5 mr-2" />
               Browse Books
             </Link>
           </div>
-        )}
-
-        {/* Orders List */}
-        {!isLoading && filteredOrders.length > 0 && (
-          <div className="space-y-6">
-            {filteredOrders.map((order: Order) => {
-              const book = seedBooks.find((book) => book.id === order.bookId);
-              const StatusIcon = getStatusIcon(order.status);
-
-              return (
-                <div
-                  key={order.id}
-                  className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow"
-                >
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-center gap-4">
-                      <div className="flex-shrink-0">
-                        {book ? (
-                          <Link to={`/books/${book.id}`}>
-                            <div className="bg-gradient-to-br from-blue-100 to-purple-100 w-16 h-20 rounded-lg flex items-center justify-center">
-                              <BookOpen className="h-8 w-8 text-blue-400" />
-                            </div>
-                          </Link>
-                        ) : (
-                          <div className="bg-gray-100 w-16 h-20 rounded-lg flex items-center justify-center">
-                            <Package className="h-8 w-8 text-gray-400" />
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-3 mb-2">
-                          <h3 className="text-lg font-semibold text-gray-900">
-                            Order #{order.id}
-                          </h3>
-                          <span
-                            className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(
-                              order.status
-                            )}`}
-                          >
-                            <StatusIcon className="h-4 w-4 mr-1" />
-                            {order.status}
-                          </span>
-                        </div>
-                        {book && (
-                          <Link
-                            to={`/books/${book.id}`}
-                            className="text-blue-600 hover:text-blue-800 font-medium"
-                          >
-                            {book.title}
-                          </Link>
-                        )}
-                        <p className="text-gray-600 text-sm mt-1">
-                          by {book?.author || "Unknown Author"}
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredOrders.map((order) => (
+              <div
+                key={order.id}
+                className={`bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow ${
+                  isOverdue(order) ? "border-2 border-orange-400" : ""
+                }`}
+              >
+                {/* Card Header */}
+                <div className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      {getStatusIcon(order.status)}
+                      <div>
+                        <p className="font-semibold">Order #{order.id}</p>
+                        <p className="text-sm opacity-90">
+                          {order.orderType === "BUY" ? "Purchase" : "Rental"}
                         </p>
                       </div>
                     </div>
-
-                    <div className="text-right flex-shrink-0">
-                      <div className="text-2xl font-bold text-gray-900">
-                        ${order.totalAmount}
-                      </div>
-                      <div className="text-sm text-gray-600">
-                        Qty: {order.quantity}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pt-4 border-t border-gray-100">
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4 text-gray-400" />
-                      <div>
-                        <div className="text-sm text-gray-600">Order Date</div>
-                        <div className="font-medium">
-                          {new Date(order.orderDate).toLocaleDateString()}
-                        </div>
-                      </div>
-                    </div>
-
-                    {order.deliveryDate && (
-                      <div className="flex items-center gap-2">
-                        <Truck className="h-4 w-4 text-gray-400" />
-                        <div>
-                          <div className="text-sm text-gray-600">
-                            Delivery Date
-                          </div>
-                          <div className="font-medium">
-                            {new Date(order.deliveryDate).toLocaleDateString()}
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="flex items-center gap-2">
-                      <User className="h-4 w-4 text-gray-400" />
-                      <div>
-                        <div className="text-sm text-gray-600">Shipping To</div>
-                        <div className="font-medium text-sm">
-                          {order.shippingAddress.split(",")[0]}...
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <CreditCard className="h-4 w-4 text-gray-400" />
-                      <div>
-                        <div className="text-sm text-gray-600">Payment</div>
-                        <div className="font-medium">Credit Card</div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Order Actions */}
-                  <div className="flex justify-end gap-3 mt-4">
-                    {order.status === "PENDING" && (
-                      <button className="px-4 py-2 text-red-600 border border-red-300 rounded-lg hover:bg-red-50 transition-colors">
-                        Cancel Order
-                      </button>
-                    )}
-                    {(order.status === "SHIPPED" ||
-                      order.status === "DELIVERED") && (
-                      <button className="px-4 py-2 text-blue-600 border border-blue-300 rounded-lg hover:bg-blue-50 transition-colors">
-                        Track Package
-                      </button>
-                    )}
-                    <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-                      View Details
-                    </button>
+                    <span
+                      className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(
+                        isOverdue(order) ? "OVERDUE" : order.status
+                      )}`}
+                    >
+                      {isOverdue(order) ? "OVERDUE" : order.status}
+                    </span>
                   </div>
                 </div>
-              );
-            })}
+
+                {/* Card Body */}
+                <div className="p-4 space-y-3">
+                  {/* Book Info */}
+                  <div className="flex items-start gap-3">
+                    <BookOpen className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="font-semibold text-gray-800">
+                        {order.bookTitle || "Unknown Book"}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        by {order.bookAuthor || "Unknown Author"}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Date Info */}
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-gray-400" />
+                    <span className="text-sm text-gray-600">
+                      {new Date(order.createdAt).toLocaleDateString()}
+                    </span>
+                  </div>
+
+                  {/* Price Info */}
+                  {order.totalPrice && (
+                    <div className="flex items-center gap-2">
+                      <DollarSign className="h-4 w-4 text-green-600" />
+                      <span className="font-semibold text-gray-800">
+                        ${order.totalPrice.toFixed(2)}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Rental Info */}
+                  {order.orderType === "RENT" && order.rentalStartDate && (
+                    <div className="flex items-start gap-2 pt-2 border-t border-gray-200">
+                      <RotateCcw className="h-4 w-4 text-indigo-400 mt-0.5 flex-shrink-0" />
+                      <div className="text-sm">
+                        <div className="text-gray-600">Rental Period</div>
+                        <div className="font-medium text-gray-800">
+                          {order.rentalDays} days
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {new Date(order.rentalStartDate).toLocaleDateString()}{" "}
+                          →{" "}
+                          {new Date(
+                            order.rentalEndDate || ""
+                          ).toLocaleDateString()}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Card Footer - Actions */}
+                <div className="bg-gray-50 px-4 py-3 flex gap-2">
+                  {order.status === "PENDING" && (
+                    <>
+                      <button className="flex-1 px-3 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors font-medium">
+                        Pay Now
+                      </button>
+                      <button className="flex-1 px-3 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-colors font-medium">
+                        Cancel
+                      </button>
+                    </>
+                  )}
+                  {order.orderType === "RENT" &&
+                    order.status !== "CANCELLED" &&
+                    order.status !== "RETURNED" && (
+                      <button className="flex-1 px-3 py-2 bg-purple-600 text-white text-sm rounded-lg hover:bg-purple-700 transition-colors font-medium">
+                        Extend Rental
+                      </button>
+                    )}
+                  <button className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm">
+                    View Details
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>
