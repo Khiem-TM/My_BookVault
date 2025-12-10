@@ -7,15 +7,37 @@ services:
     hostname: kafka
     restart: always
     ports:
-      - "9094:9094"
       - "9092:9092"
+      - "9094:9094"
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: "zookeeper:2181"
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,EXTERNAL://localhost:9094
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT
-      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,EXTERNAL://0.0.0.0:9094
-      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_LISTENERS: INTERNAL://0.0.0.0:9092
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    healthcheck:
+      test: nc -z localhost 9092 || exit -1
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  init-kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: init-kafka
+    depends_on:
+      kafka:
+        condition: service_healthy
+    entrypoint: [ '/bin/sh', '-c' ]
+    command: |
+      echo "Waiting 5s for Kafka to be ready..."
+      sleep 5
+      echo "Creating topic notification-delivery..."
+      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic notification-delivery --replication-factor 1 --partitions 1
+      echo "Topic created successfully."
+
   zookeeper:
     platform: linux/amd64
     image: "confluentinc/cp-zookeeper:7.5.0"
@@ -27,9 +49,10 @@ services:
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
+
   mongodb:
-    platform: linux/arm64
-    image: arm64v8/mongo:4.4
+    platform: linux/amd64
+    image: mongo:4.4
     container_name: mongodb
     hostname: mongodb
     restart: always
@@ -38,6 +61,7 @@ services:
     environment:
       MONGO_INITDB_ROOT_USERNAME: root
       MONGO_INITDB_ROOT_PASSWORD: root
+
   mysql:
     platform: linux/amd64
     image: mysql:8.0.40-debian
@@ -48,6 +72,7 @@ services:
       - "3306:3306"
     environment:
       MYSQL_ROOT_PASSWORD: root
+
   neo4j:
     platform: linux/amd64
     image: neo4j:5.24.2
@@ -59,6 +84,7 @@ services:
       - "7687:7687"
     environment:
       NEO4J_AUTH: neo4j/12345678
+
   zipkin:
     platform: linux/amd64
     image: openzipkin/zipkin:2.24
@@ -67,6 +93,7 @@ services:
     restart: always
     ports:
       - "9411:9411"
+
   redis:
     platform: linux/amd64
     image: redis:7
@@ -93,7 +120,7 @@ services:
       mysql:
         condition: service_started
       kafka:
-        condition: service_started
+        condition: service_healthy
       profile-service:
         condition: service_started
     healthcheck:
@@ -352,8 +379,9 @@ services:
     depends_on:
       mongodb:
         condition: service_started
-      kafka:
-        condition: service_started
+      # Đợi init-kafka chạy xong thành công mới start
+      init-kafka:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD-SHELL","curl -s http://localhost:8082/notification >/dev/null || exit 1"]
       interval: 10s

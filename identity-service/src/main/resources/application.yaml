@@ -32,3 +32,10 @@ app:
   password-reset-expiry-hours: 24
   refresh-token-expiry-days: 7
   frontend-url: http://localhost:3000
+  depends_on:
+    mysql:
+      condition: service_started
+    kafka:
+      condition: service_healthy # <--- SỬA DÒNG NÀY
+    profile-service:
+      condition: service_started
