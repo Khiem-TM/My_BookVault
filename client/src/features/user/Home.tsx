@@ -40,63 +40,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-      {/* Header with Navigation */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-8">
-              <Link to="/" className="flex items-center space-x-2">
-                <BookOpen className="h-8 w-8 text-blue-600" />
-                <span className="text-2xl font-bold text-gray-900">MyBook</span>
-              </Link>
-              <nav className="hidden md:flex space-x-8">
-                <Link
-                  to="/books"
-                  className="text-gray-600 hover:text-blue-600 transition-colors"
-                >
-                  Browse
-                </Link>
-                <Link
-                  to="/library"
-                  className="text-gray-600 hover:text-blue-600 transition-colors"
-                >
-                  My Library
-                </Link>
-                <Link
-                  to="/genres"
-                  className="text-gray-600 hover:text-blue-600 transition-colors"
-                >
-                  Categories
-                </Link>
-                <Link
-                  to="/profile"
-                  className="text-gray-600 hover:text-blue-600 transition-colors"
-                >
-                  Profile
-                </Link>
-              </nav>
-            </div>
-            <div className="flex items-center space-x-4">
-              <div className="relative hidden sm:block">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <input
-                  type="text"
-                  placeholder="Search books, authors..."
-                  className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
-              <Link
-                to="/profile"
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                Dashboard
-              </Link>
-            </div>
-          </div>
-        </div>
-      </header>
+      {/* Header removed; using global layout header */}
 
       {/* Hero Section */}
       <section className="bg-gradient-to-r from-blue-600 to-purple-700 text-white py-20">
