@@ -422,12 +422,18 @@ npm test -- --watch
 
 ```bash
 # Kiểm tra ports đang sử dụng (Linux/Mac)
-lsof -i :8888
-lsof -i :3306
+lsof -i :8888  # API Gateway
+lsof -i :3000  # Client/Frontend
+lsof -i :3306  # MySQL
+lsof -i :8080  # Identity Service
+lsof -i :8086  # Book Service
 
 # Kiểm tra ports đang sử dụng (Windows)
 netstat -ano | findstr :8888
+netstat -ano | findstr :3000
 netstat -ano | findstr :3306
+netstat -ano | findstr :8080
+netstat -ano | findstr :8086
 
 # Stop services đang chạy
 docker-compose down
