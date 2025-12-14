@@ -182,8 +182,8 @@ service-name/
 │   ├── configuration/   # Spring configurations
 │   └── validator/       # Custom validators
 ├── src/main/resources/
-│   ├── application.yml  # Configuration
-│   └── application-docker.yml
+│   ├── application.yml         # Configuration
+│   └── application-docker.yml  # Docker configuration
 └── pom.xml
 ```
 
@@ -421,9 +421,13 @@ npm test -- --watch
 #### 1. Port đã được sử dụng
 
 ```bash
-# Kiểm tra ports đang sử dụng
+# Kiểm tra ports đang sử dụng (Linux/Mac)
 lsof -i :8888
 lsof -i :3306
+
+# Kiểm tra ports đang sử dụng (Windows)
+netstat -ano | findstr :8888
+netstat -ano | findstr :3306
 
 # Stop services đang chạy
 docker-compose down
@@ -511,9 +515,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-## 👥 Team
+## 👥 Author
 
-Dự án được phát triển bởi team Khiem-TM.
+Dự án được phát triển bởi [Khiem-TM](https://github.com/Khiem-TM).
 
 ---
 
