@@ -14,17 +14,25 @@ export default function Login() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      console.log("🔐 Starting login process...");
       await login(formData.username, formData.password);
+      console.log("✅ Login successful, checking role...");
 
-      // Check if user is admin and redirect accordingly
-      const role = localStorage.getItem("role");
-      if (role === "ADMIN") {
-        navigate("/admin");
-      } else {
-        navigate("/");
-      }
+      // Wait a tick to ensure localStorage is updated
+      setTimeout(() => {
+        const role = localStorage.getItem("role");
+        console.log("📋 Role from localStorage:", role);
+
+        if (role === "ADMIN") {
+          console.log("👑 Admin user detected, navigating to /admin");
+          navigate("/admin");
+        } else {
+          console.log("👤 Regular user, navigating to /");
+          navigate("/");
+        }
+      }, 0);
     } catch (error) {
-      console.error("Login error:", error);
+      console.error("❌ Login error:", error);
     }
   };
 

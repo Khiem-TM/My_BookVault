@@ -1,5 +1,13 @@
 import axios, { AxiosError, AxiosResponse } from "axios";
 
+// Define API Response wrapper interface
+export interface ApiResponse<T = any> {
+  code?: number;
+  message?: string;
+  result?: T;
+  success?: boolean;
+}
+
 const baseURL =
   import.meta.env.VITE_API_BASE_URL || "http://localhost:8888/api/v1";
 
@@ -33,11 +41,34 @@ api.interceptors.request.use(
 
 // Response interceptor - handle errors and refresh token
 api.interceptors.response.use(
-  (response: AxiosResponse) => {
+  (response: AxiosResponse<ApiResponse>) => {
     console.debug(
-      `✅ Response received: ${response.status} ${response.config.url}`
+      `✅ Response received: ${response.status} ${response.config.url}`,
+      response.data
     );
-    return response.data;
+
+    // Check if response has error code in body (business logic error)
+    // Success codes: 0, 1000, 200
+    if (response.data?.code && ![0, 1000, 200].includes(response.data.code)) {
+      const status = response.data.code;
+      const message = response.data.message;
+
+      console.error(`❌ API Error [${status}]:`, message);
+
+      // Handle specific error codes
+      if (status === 1006) {
+        // Unauthenticated
+        console.warn("🚫 Unauthenticated - clearing auth and redirecting");
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        localStorage.removeItem("role");
+        window.location.href = "/auth/login";
+      }
+
+      return Promise.reject(response.data);
+    }
+
+    return response.data as any;
   },
   (error: AxiosError<any>) => {
     const status = error.response?.status;

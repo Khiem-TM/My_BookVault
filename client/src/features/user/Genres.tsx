@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
   BookOpen,
@@ -13,7 +13,7 @@ import {
   Heart,
   Award,
 } from "lucide-react";
-import { categories, seedBooks } from "../../data/seedBooks";
+import { bookService } from "../../services/apiServices";
 
 interface GenreStats {
   name: string;
@@ -23,7 +23,7 @@ interface GenreStats {
   averageRating: number;
   totalReaders: number;
   trending: boolean;
-  popularBooks: typeof seedBooks;
+  popularBooks: any[];
 }
 
 export default function Genres() {
@@ -32,49 +32,60 @@ export default function Genres() {
   const [sortBy, setSortBy] = useState<"name" | "popularity" | "books">(
     "popularity"
   );
+  const [genreStats, setGenreStats] = useState<GenreStats[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Generate genre statistics
-  const genreStats: GenreStats[] = categories.map((category) => {
-    const categoryBooks = seedBooks.filter(
-      (book) => book.category === category
-    );
-    const averageRating =
-      categoryBooks.length > 0
-        ? categoryBooks.reduce((sum, book) => sum + book.rating, 0) /
-          categoryBooks.length
-        : 0;
+  // Fetch categories and books on mount
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [categoriesData, booksData] = await Promise.all([
+          bookService.getCategories(),
+          bookService.getBooks(0, 100),
+        ]);
 
-    return {
-      name: category,
-      description: getGenreDescription(category),
-      icon: getGenreIcon(category),
-      bookCount: categoryBooks.length,
-      averageRating: Math.round(averageRating * 10) / 10,
-      totalReaders: Math.floor(Math.random() * 10000) + 1000, // Mock data
-      trending: Math.random() > 0.6, // Random trending status
-      popularBooks: categoryBooks
-        .sort((a, b) => b.rating - a.rating)
-        .slice(0, 3),
-    };
-  });
+        const books = booksData.content || [];
+        const stats = (categoriesData || []).map((category: any) => {
+          const categoryBooks = books.filter(
+            (book: any) =>
+              book.category === (category.name || category) ||
+              book.categoryName === (category.name || category)
+          );
+          const averageRating =
+            categoryBooks.length > 0
+              ? categoryBooks.reduce(
+                  (sum: number, book: any) => sum + (book.rating || 0),
+                  0
+                ) / categoryBooks.length
+              : 0;
 
-  const filteredGenres = genreStats
-    .filter(
-      (genre) =>
-        genre.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        genre.description.toLowerCase().includes(searchTerm.toLowerCase())
-    )
-    .sort((a, b) => {
-      switch (sortBy) {
-        case "name":
-          return a.name.localeCompare(b.name);
-        case "books":
-          return b.bookCount - a.bookCount;
-        case "popularity":
-        default:
-          return b.totalReaders - a.totalReaders;
+          return {
+            name: category.name || category,
+            description: getGenreDescription(category.name || category),
+            icon: getGenreIcon(category.name || category),
+            bookCount: categoryBooks.length,
+            averageRating: Math.round(averageRating * 10) / 10,
+            totalReaders: Math.floor(Math.random() * 10000) + 1000,
+            trending: Math.random() > 0.6,
+            popularBooks: categoryBooks
+              .sort((a: any, b: any) => (b.rating || 0) - (a.rating || 0))
+              .slice(0, 3),
+          };
+        });
+
+        setGenreStats(stats);
+      } catch (err) {
+        console.error("Error fetching genres:", err);
+        setError("Failed to load genres");
+      } finally {
+        setLoading(false);
       }
-    });
+    };
+
+    fetchData();
+  }, []);
 
   function getGenreDescription(genre: string): string {
     const descriptions: { [key: string]: string } = {
@@ -120,17 +131,56 @@ export default function Genres() {
     return icons[genre] || "📖";
   }
 
-  const totalBooks = seedBooks.length;
+  const totalBooks = genreStats.reduce(
+    (sum, genre) => sum + genre.bookCount,
+    0
+  );
   const totalReaders = genreStats.reduce(
     (sum, genre) => sum + genre.totalReaders,
     0
   );
   const averageRating =
-    Math.round(
-      (seedBooks.reduce((sum, book) => sum + book.rating, 0) /
-        seedBooks.length) *
-        10
-    ) / 10;
+    genreStats.length > 0
+      ? Math.round(
+          (genreStats.reduce((sum, genre) => sum + genre.averageRating, 0) /
+            genreStats.length) *
+            10
+        ) / 10
+      : 0;
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <p className="text-gray-600 text-lg">Loading genres...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <p className="text-red-600 text-lg">{error}</p>
+      </div>
+    );
+  }
+
+  const filteredGenres = genreStats
+    .filter(
+      (genre) =>
+        genre.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        genre.description.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+    .sort((a, b) => {
+      switch (sortBy) {
+        case "name":
+          return a.name.localeCompare(b.name);
+        case "books":
+          return b.bookCount - a.bookCount;
+        case "popularity":
+        default:
+          return b.totalReaders - a.totalReaders;
+      }
+    });
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -156,7 +206,7 @@ export default function Genres() {
             <div className="hidden md:flex items-center gap-6">
               <div className="text-center">
                 <div className="text-2xl font-bold text-purple-600">
-                  {categories.length}
+                  {genreStats.length}
                 </div>
                 <div className="text-sm text-gray-600">Genres</div>
               </div>

@@ -1,23 +1,16 @@
-import React, { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { api } from "../../services/apiClient";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
   Music,
   Plus,
   Trash2,
-  Edit2,
   Share2,
-  Lock,
-  Globe,
-  Users,
-  Play,
   BookOpen,
   Search,
   Grid,
   List,
 } from "lucide-react";
-import { seedBooks } from "../../data/seedBooks";
+import { playlistService, bookService } from "../../services/apiServices";
 
 interface Playlist {
   id: string;
@@ -29,65 +22,32 @@ interface Playlist {
   userId: string;
 }
 
-interface PlaylistDetail extends Playlist {
-  books: Array<{
-    id: string;
-    bookId: string;
-    title: string;
-    author: string;
-    thumbnailUrl?: string;
-  }>;
-}
-
 export default function MyPlaylist() {
-  const userId = "1";
-  const queryClient = useQueryClient();
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [searchTerm, setSearchTerm] = useState("");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newPlaylistName, setNewPlaylistName] = useState("");
   const [newPlaylistDesc, setNewPlaylistDesc] = useState("");
+  const [playlists, setPlaylists] = useState<Playlist[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Fetch playlists
-  const { data: playlists, isLoading: playlistsLoading } = useQuery({
-    queryKey: ["playlists", userId],
-    queryFn: async () => {
+  useEffect(() => {
+    const fetchData = async () => {
       try {
-        const response = await api.get(`/library/playlists`);
-        return response.data?.result || mockPlaylists;
+        setLoading(true);
+        const playlistsData = await playlistService.getUserPlaylists();
+        setPlaylists(playlistsData || []);
       } catch (err) {
-        return mockPlaylists;
+        console.error("Error fetching playlists:", err);
+        setError("Failed to load playlists");
+      } finally {
+        setLoading(false);
       }
-    },
-  });
+    };
 
-  // Create playlist mutation
-  const createPlaylistMutation = useMutation({
-    mutationFn: async () => {
-      const response = await api.post(`/library/playlists`, {
-        name: newPlaylistName,
-        description: newPlaylistDesc,
-        userId,
-      });
-      return response.data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["playlists", userId] });
-      setNewPlaylistName("");
-      setNewPlaylistDesc("");
-      setShowCreateModal(false);
-    },
-  });
-
-  // Delete playlist mutation
-  const deletePlaylistMutation = useMutation({
-    mutationFn: async (playlistId: string) => {
-      await api.delete(`/library/playlists/${playlistId}`);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["playlists", userId] });
-    },
-  });
+    fetchData();
+  }, []);
 
   const mockPlaylists: Playlist[] = [
     {
@@ -108,18 +68,11 @@ export default function MyPlaylist() {
       updatedAt: "2024-12-03",
       userId: "1",
     },
-    {
-      id: "3",
-      name: "Fantasy Classics",
-      description: "Classic fantasy novels",
-      bookCount: 6,
-      createdAt: "2024-08-20",
-      updatedAt: "2024-11-28",
-      userId: "1",
-    },
   ];
 
-  const filteredPlaylists = (playlists || mockPlaylists).filter((playlist) => {
+  const displayPlaylists = playlists.length > 0 ? playlists : mockPlaylists;
+
+  const filteredPlaylists = displayPlaylists.filter((playlist) => {
     if (!searchTerm) return true;
     return (
       playlist.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -127,6 +80,33 @@ export default function MyPlaylist() {
         playlist.description.toLowerCase().includes(searchTerm.toLowerCase()))
     );
   });
+
+  const handleCreatePlaylist = async () => {
+    if (!newPlaylistName.trim()) return;
+    try {
+      await playlistService.createPlaylist({
+        name: newPlaylistName,
+        description: newPlaylistDesc,
+      });
+      setNewPlaylistName("");
+      setNewPlaylistDesc("");
+      setShowCreateModal(false);
+      // Refetch playlists
+      const updatedPlaylists = await playlistService.getUserPlaylists();
+      setPlaylists(updatedPlaylists || []);
+    } catch (err) {
+      console.error("Error creating playlist:", err);
+    }
+  };
+
+  const handleDeletePlaylist = async (playlistId: string) => {
+    try {
+      await playlistService.deletePlaylist(playlistId);
+      setPlaylists(playlists.filter((p) => p.id !== playlistId));
+    } catch (err) {
+      console.error("Error deleting playlist:", err);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -219,14 +199,21 @@ export default function MyPlaylist() {
         </div>
 
         {/* Loading */}
-        {playlistsLoading && (
+        {loading && (
           <div className="flex items-center justify-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
           </div>
         )}
 
+        {/* Error */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
+            {error}
+          </div>
+        )}
+
         {/* Empty State */}
-        {!playlistsLoading && filteredPlaylists.length === 0 && (
+        {!loading && filteredPlaylists.length === 0 && (
           <div className="text-center py-12">
             <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <Music className="h-12 w-12 text-gray-400" />
@@ -250,7 +237,7 @@ export default function MyPlaylist() {
         )}
 
         {/* Playlists Grid/List */}
-        {!playlistsLoading && filteredPlaylists.length > 0 && (
+        {!loading && filteredPlaylists.length > 0 && (
           <div
             className={
               viewMode === "grid"
@@ -263,67 +250,54 @@ export default function MyPlaylist() {
                 key={playlist.id}
                 className={`bg-white rounded-xl shadow-lg hover:shadow-xl transition-all ${
                   viewMode === "grid"
-                    ? ""
+                    ? "p-6"
                     : "flex items-center justify-between p-6"
                 }`}
               >
                 {viewMode === "grid" ? (
                   <>
-                    {/* Grid View */}
-                    <div className="p-6 pb-4">
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="w-12 h-12 bg-gradient-to-br from-purple-400 to-pink-400 rounded-lg flex items-center justify-center">
-                          <Music className="h-6 w-6 text-white" />
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-                            <Share2 className="h-4 w-4 text-gray-600" />
-                          </button>
-                          <button
-                            onClick={() =>
-                              deletePlaylistMutation.mutate(playlist.id)
-                            }
-                            className="p-2 hover:bg-red-100 rounded-lg transition-colors"
-                          >
-                            <Trash2 className="h-4 w-4 text-red-600" />
-                          </button>
-                        </div>
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="w-12 h-12 bg-gradient-to-br from-purple-400 to-pink-400 rounded-lg flex items-center justify-center">
+                        <Music className="h-6 w-6 text-white" />
                       </div>
+                      <button
+                        onClick={() => handleDeletePlaylist(playlist.id)}
+                        className="p-2 hover:bg-red-100 rounded-lg transition-colors"
+                      >
+                        <Trash2 className="h-4 w-4 text-red-600" />
+                      </button>
+                    </div>
 
-                      <h3 className="text-lg font-semibold text-gray-900 mb-2 line-clamp-2">
-                        {playlist.name}
-                      </h3>
-                      {playlist.description && (
-                        <p className="text-sm text-gray-600 mb-4 line-clamp-2">
-                          {playlist.description}
-                        </p>
-                      )}
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2 line-clamp-2">
+                      {playlist.name}
+                    </h3>
+                    {playlist.description && (
+                      <p className="text-sm text-gray-600 mb-4 line-clamp-2">
+                        {playlist.description}
+                      </p>
+                    )}
 
-                      <div className="space-y-2 mb-4">
-                        <div className="flex items-center text-sm text-gray-600">
-                          <BookOpen className="h-4 w-4 mr-2" />
-                          {playlist.bookCount}{" "}
-                          {playlist.bookCount === 1 ? "book" : "books"}
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          Created{" "}
-                          {new Date(playlist.createdAt).toLocaleDateString()}
-                        </div>
+                    <div className="space-y-2 mb-4">
+                      <div className="flex items-center text-sm text-gray-600">
+                        <BookOpen className="h-4 w-4 mr-2" />
+                        {playlist.bookCount}{" "}
+                        {playlist.bookCount === 1 ? "book" : "books"}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        Updated{" "}
+                        {new Date(playlist.updatedAt).toLocaleDateString()}
                       </div>
                     </div>
 
-                    {/* View Button */}
                     <Link
                       to={`/playlists/${playlist.id}`}
-                      className="w-full px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium text-center flex items-center justify-center gap-2"
+                      className="w-full px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium text-center"
                     >
-                      <Play className="h-4 w-4" />
                       View Playlist
                     </Link>
                   </>
                 ) : (
                   <>
-                    {/* List View */}
                     <div className="flex-1">
                       <h3 className="text-lg font-semibold text-gray-900 mb-1">
                         {playlist.name}
@@ -342,7 +316,6 @@ export default function MyPlaylist() {
                       </div>
                     </div>
 
-                    {/* Actions */}
                     <div className="flex items-center gap-2">
                       <Link
                         to={`/playlists/${playlist.id}`}
@@ -350,13 +323,8 @@ export default function MyPlaylist() {
                       >
                         View
                       </Link>
-                      <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-                        <Share2 className="h-4 w-4 text-gray-600" />
-                      </button>
                       <button
-                        onClick={() =>
-                          deletePlaylistMutation.mutate(playlist.id)
-                        }
+                        onClick={() => handleDeletePlaylist(playlist.id)}
                         className="p-2 hover:bg-red-100 rounded-lg transition-colors"
                       >
                         <Trash2 className="h-4 w-4 text-red-600" />
@@ -414,13 +382,11 @@ export default function MyPlaylist() {
                 Cancel
               </button>
               <button
-                onClick={() => createPlaylistMutation.mutate()}
-                disabled={
-                  !newPlaylistName.trim() || createPlaylistMutation.isPending
-                }
+                onClick={handleCreatePlaylist}
+                disabled={!newPlaylistName.trim()}
                 className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {createPlaylistMutation.isPending ? "Creating..." : "Create"}
+                Create
               </button>
             </div>
           </div>

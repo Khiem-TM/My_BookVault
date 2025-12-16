@@ -1,6 +1,4 @@
-import React, { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { api } from "../../services/apiClient";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
   BookOpen,
@@ -13,7 +11,7 @@ import {
   Search,
   Filter,
 } from "lucide-react";
-import { seedBooks } from "../../data/seedBooks";
+import { libraryService, bookService } from "../../services/apiServices";
 
 interface LibraryItem {
   id: string;
@@ -29,49 +27,32 @@ export default function LibraryShelf() {
   );
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [searchTerm, setSearchTerm] = useState("");
-  const userId = 1;
+  const [libraryBooks, setLibraryBooks] = useState([]);
+  const [allBooks, setAllBooks] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const { data, isLoading, error } = useQuery({
-    queryKey: ["library", userId, shelf],
-    queryFn: async () =>
-      (await api.get(`/library/items/by-shelf`, { params: { userId, shelf } }))
-        .data,
-  });
+  // Fetch library books and all books from API
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [libBooks, allBooksData] = await Promise.all([
+          libraryService.getUserLibrary(),
+          bookService.getBooks(0, 200),
+        ]);
+        setLibraryBooks(libBooks || []);
+        setAllBooks(allBooksData.content || []);
+      } catch (err) {
+        console.error("Error fetching data:", err);
+        setError("Failed to load library");
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  // Mock data for demo purposes when API returns empty
-  const mockLibraryItems: LibraryItem[] = [
-    { id: "1", bookId: "1", shelf: "WISHLIST", addedDate: "2024-12-01" },
-    {
-      id: "2",
-      bookId: "2",
-      shelf: "READING",
-      addedDate: "2024-11-15",
-      progress: 45,
-    },
-    { id: "3", bookId: "3", shelf: "READ", addedDate: "2024-10-20" },
-    { id: "4", bookId: "4", shelf: "WISHLIST", addedDate: "2024-12-05" },
-    {
-      id: "5",
-      bookId: "5",
-      shelf: "READING",
-      addedDate: "2024-11-28",
-      progress: 78,
-    },
-    { id: "6", bookId: "6", shelf: "READ", addedDate: "2024-09-10" },
-  ];
-
-  const libraryItems = data && data.length > 0 ? data : mockLibraryItems;
-  const filteredItems = libraryItems
-    .filter((item: LibraryItem) => item.shelf === shelf)
-    .filter((item: LibraryItem) => {
-      if (!searchTerm) return true;
-      const book = seedBooks.find((book) => book.id === item.bookId);
-      if (!book) return false;
-      return (
-        book.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        book.author.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    });
+    fetchData();
+  }, []);
 
   const getShelfIcon = (shelfType: string) => {
     switch (shelfType) {
@@ -101,17 +82,29 @@ export default function LibraryShelf() {
 
   const getShelfStats = () => {
     const stats = {
-      WISHLIST: libraryItems.filter(
+      WISHLIST: libraryBooks.filter(
         (item: LibraryItem) => item.shelf === "WISHLIST"
       ).length,
-      READING: libraryItems.filter(
+      READING: libraryBooks.filter(
         (item: LibraryItem) => item.shelf === "READING"
       ).length,
-      READ: libraryItems.filter((item: LibraryItem) => item.shelf === "READ")
+      READ: libraryBooks.filter((item: LibraryItem) => item.shelf === "READ")
         .length,
     };
     return stats;
   };
+
+  const filteredItems = libraryBooks
+    .filter((item: LibraryItem) => item.shelf === shelf)
+    .filter((item: LibraryItem) => {
+      if (!searchTerm) return true;
+      const book = allBooks.find((book: any) => book.id === item.bookId);
+      if (!book) return false;
+      return (
+        book.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        book.author.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    });
 
   const stats = getShelfStats();
 
@@ -164,7 +157,7 @@ export default function LibraryShelf() {
           <div className="flex flex-wrap gap-2">
             {(["WISHLIST", "READING", "READ"] as const).map((shelfType) => {
               const Icon = getShelfIcon(shelfType);
-              const count = stats[shelfType as 'WISHLIST'|'READING'|'READ']
+              const count = stats[shelfType as "WISHLIST" | "READING" | "READ"];
               return (
                 <button
                   key={shelfType}
@@ -228,7 +221,7 @@ export default function LibraryShelf() {
         </div>
 
         {/* Loading State */}
-        {isLoading && (
+        {loading && (
           <div className="flex items-center justify-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
           </div>
@@ -237,12 +230,12 @@ export default function LibraryShelf() {
         {/* Error State */}
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
-            Error loading library: {(error as any).message}
+            {error}
           </div>
         )}
 
         {/* Empty State */}
-        {!isLoading && filteredItems.length === 0 && (
+        {!loading && filteredItems.length === 0 && (
           <div className="text-center py-12">
             <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <Book className="h-12 w-12 text-gray-400" />
@@ -268,7 +261,7 @@ export default function LibraryShelf() {
         )}
 
         {/* Books Grid/List */}
-        {!isLoading && filteredItems.length > 0 && (
+        {!loading && filteredItems.length > 0 && (
           <div
             className={
               viewMode === "grid"
@@ -277,7 +270,7 @@ export default function LibraryShelf() {
             }
           >
             {filteredItems.map((item: LibraryItem) => {
-              const book = seedBooks.find((book) => book.id === item.bookId);
+              const book = allBooks.find((b: any) => b.id === item.bookId);
               if (!book) return null;
 
               return viewMode === "grid" ? (
@@ -297,10 +290,9 @@ export default function LibraryShelf() {
                           item.shelf
                         )}`}
                       >
-                        {getShelfIcon(item.shelf) &&
-                          React.createElement(getShelfIcon(item.shelf), {
-                            className: "h-3 w-3 mr-1",
-                          })}
+                        {React.createElement(getShelfIcon(item.shelf), {
+                          className: "h-3 w-3 mr-1",
+                        })}
                         {item.shelf}
                       </span>
                       {item.progress && (
@@ -351,10 +343,9 @@ export default function LibraryShelf() {
                             item.shelf
                           )}`}
                         >
-                          {getShelfIcon(item.shelf) &&
-                            React.createElement(getShelfIcon(item.shelf), {
-                              className: "h-3 w-3 mr-1",
-                            })}
+                          {React.createElement(getShelfIcon(item.shelf), {
+                            className: "h-3 w-3 mr-1",
+                          })}
                           {item.shelf}
                         </span>
                       </div>

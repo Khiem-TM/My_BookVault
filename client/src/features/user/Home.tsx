@@ -9,12 +9,36 @@ import {
   Clock,
   Heart,
 } from "lucide-react";
-import { seedBooks, categories } from "../../data/seedBooks";
+import { bookService } from "../../services/apiServices";
 
 export default function Home() {
-  const [featuredBooks, setFeaturedBooks] = useState(seedBooks.slice(0, 6));
-  const [trendingBooks, setTrendingBooks] = useState(seedBooks.slice(6, 9));
+  const [featuredBooks, setFeaturedBooks] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch books and categories on mount
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [booksData, categoriesData] = await Promise.all([
+          bookService.getBooks(0, 6),
+          bookService.getCategories(),
+        ]);
+        setFeaturedBooks(booksData.content || []);
+        setCategories(categoriesData || []);
+      } catch (err) {
+        console.error("Error fetching data:", err);
+        setError("Failed to load books and categories");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   const stats = [
     {
@@ -108,55 +132,72 @@ export default function Home() {
               View All →
             </Link>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-            {featuredBooks.map((book) => (
-              <div
-                key={book.id}
-                className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow"
-              >
-                <div className="aspect-w-3 aspect-h-4 bg-gradient-to-br from-blue-100 to-purple-100 h-48 flex items-center justify-center">
-                  <BookOpen className="h-20 w-20 text-blue-400" />
-                </div>
-                <div className="p-6">
-                  <h3 className="font-bold text-lg mb-2 line-clamp-2">
-                    {book.title}
-                  </h3>
-                  <p className="text-gray-600 mb-2">by {book.author}</p>
-                  <div className="flex items-center mb-3">
-                    <div className="flex items-center">
-                      {[...Array(5)].map((_, i) => (
-                        <Star
-                          key={i}
-                          className={`h-4 w-4 ${
-                            i < Math.floor(book.rating)
-                              ? "text-yellow-400 fill-current"
-                              : "text-gray-300"
-                          }`}
-                        />
-                      ))}
+          {loading && (
+            <div className="text-center py-8">
+              <p className="text-gray-600">Loading featured books...</p>
+            </div>
+          )}
+          {error && (
+            <div className="text-center py-8">
+              <p className="text-red-600">{error}</p>
+            </div>
+          )}
+          {!loading && featuredBooks.length === 0 && (
+            <div className="text-center py-8">
+              <p className="text-gray-600">No books available</p>
+            </div>
+          )}
+          {!loading && featuredBooks.length > 0 && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+              {featuredBooks.map((book: any) => (
+                <div
+                  key={book.id}
+                  className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow"
+                >
+                  <div className="aspect-w-3 aspect-h-4 bg-gradient-to-br from-blue-100 to-purple-100 h-48 flex items-center justify-center">
+                    <BookOpen className="h-20 w-20 text-blue-400" />
+                  </div>
+                  <div className="p-6">
+                    <h3 className="font-bold text-lg mb-2 line-clamp-2">
+                      {book.title}
+                    </h3>
+                    <p className="text-gray-600 mb-2">by {book.author}</p>
+                    <div className="flex items-center mb-3">
+                      <div className="flex items-center">
+                        {[...Array(5)].map((_, i) => (
+                          <Star
+                            key={i}
+                            className={`h-4 w-4 ${
+                              i < Math.floor(book.rating || 0)
+                                ? "text-yellow-400 fill-current"
+                                : "text-gray-300"
+                            }`}
+                          />
+                        ))}
+                      </div>
+                      <span className="text-sm text-gray-600 ml-2">
+                        ({book.reviews || 0} reviews)
+                      </span>
                     </div>
-                    <span className="text-sm text-gray-600 ml-2">
-                      ({book.reviews} reviews)
-                    </span>
-                  </div>
-                  <p className="text-gray-600 text-sm mb-4 line-clamp-3">
-                    {book.description}
-                  </p>
-                  <div className="flex justify-between items-center">
-                    <span className="text-2xl font-bold text-blue-600">
-                      ${book.price}
-                    </span>
-                    <Link
-                      to={`/books/${book.id}`}
-                      className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-                    >
-                      View Details
-                    </Link>
+                    <p className="text-gray-600 text-sm mb-4 line-clamp-3">
+                      {book.description}
+                    </p>
+                    <div className="flex justify-between items-center">
+                      <span className="text-2xl font-bold text-blue-600">
+                        ${book.price || "0.00"}
+                      </span>
+                      <Link
+                        to={`/books/${book.id}`}
+                        className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                      >
+                        View Details
+                      </Link>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
@@ -166,35 +207,43 @@ export default function Home() {
           <h2 className="text-3xl font-bold text-gray-900 text-center mb-12">
             Explore by Category
           </h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            {categories.slice(1, 9).map((category, index) => (
-              <Link
-                key={category}
-                to={`/books?category=${encodeURIComponent(category)}`}
-                className="group bg-white rounded-xl p-6 text-center shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-1"
-              >
-                <div
-                  className={`w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center bg-gradient-to-r ${
-                    [
-                      "from-red-400 to-red-600",
-                      "from-blue-400 to-blue-600",
-                      "from-green-400 to-green-600",
-                      "from-purple-400 to-purple-600",
-                      "from-yellow-400 to-yellow-600",
-                      "from-pink-400 to-pink-600",
-                      "from-indigo-400 to-indigo-600",
-                      "from-teal-400 to-teal-600",
-                    ][index]
-                  }`}
+          {categories.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-gray-600">Loading categories...</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+              {categories.slice(0, 8).map((category: any, index: number) => (
+                <Link
+                  key={category.id || index}
+                  to={`/books?category=${encodeURIComponent(
+                    category.name || category
+                  )}`}
+                  className="group bg-white rounded-xl p-6 text-center shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-1"
                 >
-                  <BookOpen className="h-8 w-8 text-white" />
-                </div>
-                <h3 className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
-                  {category}
-                </h3>
-              </Link>
-            ))}
-          </div>
+                  <div
+                    className={`w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center bg-gradient-to-r ${
+                      [
+                        "from-red-400 to-red-600",
+                        "from-blue-400 to-blue-600",
+                        "from-green-400 to-green-600",
+                        "from-purple-400 to-purple-600",
+                        "from-yellow-400 to-yellow-600",
+                        "from-pink-400 to-pink-600",
+                        "from-indigo-400 to-indigo-600",
+                        "from-teal-400 to-teal-600",
+                      ][index]
+                    }`}
+                  >
+                    <BookOpen className="h-8 w-8 text-white" />
+                  </div>
+                  <h3 className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
+                    {category.name || category}
+                  </h3>
+                </Link>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
