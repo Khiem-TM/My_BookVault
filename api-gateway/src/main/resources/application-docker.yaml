@@ -16,7 +16,7 @@ spring:
       globalcors:
         add-to-simple-url-handler-mapping: true
         corsConfigurations:
-          '[/**]':
+          "[/**]":
             allowedOrigins:
               - http://localhost:4173
               - http://localhost:3000
@@ -74,85 +74,131 @@ spring:
             - Path=${app.api-prefix}/chat/**
           filters:
             - StripPrefix=2
-        - id: book_service
+        # Book Service Routes
+        # Frontend calls /api/v1/books -> Gateway strips /api/v1 -> book-service:8086/books
+        - id: book_service_query
           uri: http://book-service:8086
           predicates:
-            - Path=${app.api-prefix}/book/**
+            - Path=${app.api-prefix}/books/**
+            - Method=GET
           filters:
             - StripPrefix=2
-            - RewritePath=/book/(?<segment>.*), /${segment}
+            - RewritePath=/books(?<segment>.*), /api/books${segment}
             - name: RequestRateLimiter
               args:
-                redis-rate-limiter.replenishRate: 100
-                redis-rate-limiter.burstCapacity: 200
+                "[redis-rate-limiter.replenishRate]": 200
+                "[redis-rate-limiter.burstCapacity]": 400
                 key-resolver: "#{@ipKeyResolver}"
             - name: Retry
               args:
                 retries: 2
                 statuses: BAD_GATEWAY, SERVICE_UNAVAILABLE, GATEWAY_TIMEOUT
-        - id: review_service
-          uri: http://review-service:8087
+
+        - id: book_service_management
+          uri: http://book-service:8086
           predicates:
-            - Path=${app.api-prefix}/review/**
+            - Path=${app.api-prefix}/books/**
+            - Method=POST,PUT,DELETE
           filters:
             - StripPrefix=2
-            - RewritePath=/review/(?<segment>.*), /${segment}
+            - RewritePath=/books(?<segment>.*), /api/admin/books${segment}
             - name: RequestRateLimiter
               args:
-                redis-rate-limiter.replenishRate: 100
-                redis-rate-limiter.burstCapacity: 200
+                "[redis-rate-limiter.replenishRate]": 50
+                "[redis-rate-limiter.burstCapacity]": 100
+                key-resolver: "#{@ipKeyResolver}"
+
+        - id: book_service_reviews
+          uri: http://book-service:8086
+          predicates:
+            - Path=${app.api-prefix}/reviews/**
+          filters:
+            - StripPrefix=2
+            - RewritePath=/reviews/?(?<segment>.*), /api/reviews/${segment}
+            - name: RequestRateLimiter
+              args:
+                "[redis-rate-limiter.replenishRate]": 100
+                "[redis-rate-limiter.burstCapacity]": 200
                 key-resolver: "#{@ipKeyResolver}"
             - name: Retry
               args:
                 retries: 2
                 statuses: BAD_GATEWAY, SERVICE_UNAVAILABLE, GATEWAY_TIMEOUT
+
+        - id: book_service_borrows
+          uri: http://book-service:8086
+          predicates:
+            - Path=${app.api-prefix}/borrows/**
+          filters:
+            - StripPrefix=2
+            - RewritePath=/borrows/?(?<segment>.*), /api/borrows/${segment}
+            - name: RequestRateLimiter
+              args:
+                "[redis-rate-limiter.replenishRate]": 100
+                "[redis-rate-limiter.burstCapacity]": 200
+                key-resolver: "#{@ipKeyResolver}"
+
+        - id: book_service_rentals
+          uri: http://book-service:8086
+          predicates:
+            - Path=${app.api-prefix}/rentals/**
+          filters:
+            - StripPrefix=2
+            - RewritePath=/rentals/?(?<segment>.*), /api/rentals/${segment}
+            - name: RequestRateLimiter
+              args:
+                "[redis-rate-limiter.replenishRate]": 100
+                "[redis-rate-limiter.burstCapacity]": 200
+                key-resolver: "#{@ipKeyResolver}"
+
         - id: library_service
-          uri: http://library-service:8088
+          uri: http://book-service:8086
           predicates:
             - Path=${app.api-prefix}/library/**
           filters:
             - StripPrefix=2
             - name: RequestRateLimiter
               args:
-                redis-rate-limiter.replenishRate: 100
-                redis-rate-limiter.burstCapacity: 200
+                "[redis-rate-limiter.replenishRate]": 100
+                "[redis-rate-limiter.burstCapacity]": 200
                 key-resolver: "#{@ipKeyResolver}"
             - name: Retry
               args:
                 retries: 2
                 statuses: BAD_GATEWAY, SERVICE_UNAVAILABLE, GATEWAY_TIMEOUT
+
         - id: transaction_service
-          uri: http://transaction-service:8090
+          uri: http://book-service:8086
           predicates:
-            - Path=${app.api-prefix}/transaction/**
+            - Path=${app.api-prefix}/transactions/**
           filters:
             - StripPrefix=2
-            - RewritePath=/transaction/(?<segment>.*), /${segment}
             - name: RequestRateLimiter
               args:
-                redis-rate-limiter.replenishRate: 50
-                redis-rate-limiter.burstCapacity: 100
+                "[redis-rate-limiter.replenishRate]": 50
+                "[redis-rate-limiter.burstCapacity]": 100
                 key-resolver: "#{@ipKeyResolver}"
             - name: Retry
               args:
                 retries: 2
                 statuses: BAD_GATEWAY, SERVICE_UNAVAILABLE, GATEWAY_TIMEOUT
+
         - id: order_service
-          uri: http://order-service:8091
+          uri: http://book-service:8086
           predicates:
-            - Path=${app.api-prefix}/order/**
+            - Path=${app.api-prefix}/orders/**
           filters:
             - StripPrefix=2
-            - RewritePath=/order/(?<segment>.*), /${segment}
             - name: RequestRateLimiter
               args:
-                redis-rate-limiter.replenishRate: 50
-                redis-rate-limiter.burstCapacity: 100
+                "[redis-rate-limiter.replenishRate]": 50
+                "[redis-rate-limiter.burstCapacity]": 100
                 key-resolver: "#{@ipKeyResolver}"
             - name: Retry
               args:
                 retries: 2
                 statuses: BAD_GATEWAY, SERVICE_UNAVAILABLE, GATEWAY_TIMEOUT
+
         - id: payment_service
           uri: http://payment-service:8092
           predicates:
@@ -162,8 +208,8 @@ spring:
             - RewritePath=/payment/(?<segment>.*), /${segment}
             - name: RequestRateLimiter
               args:
-                redis-rate-limiter.replenishRate: 30
-                redis-rate-limiter.burstCapacity: 60
+                "[redis-rate-limiter.replenishRate]": 30
+                "[redis-rate-limiter.burstCapacity]": 60
                 key-resolver: "#{@ipKeyResolver}"
             - name: Retry
               args:

@@ -9,7 +9,7 @@ spring:
   application:
     name: book-service
   datasource:
-    url: "jdbc:mysql://${DB_HOST:mysql}:3306/bookvault?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true"
+    url: "jdbc:mysql://${DB_HOST:localhost}:3306/bookvault?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true"
     driverClassName: "com.mysql.cj.jdbc.Driver"
     username: ${DB_USERNAME:root}
     password: ${DB_PASSWORD:root}
@@ -30,8 +30,11 @@ spring:
     type: redis
   data:
     redis:
-      host: ${REDIS_HOST:redis}
+      host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
+    mongodb:
+      uri: mongodb://${MONGODB_HOST:localhost}:27017/bookvault
+      database: bookvault
 
 logging:
   level:

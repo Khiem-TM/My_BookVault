@@ -28,9 +28,12 @@ export default function BooksList() {
 
   // Fetch categories
   useEffect(() => {
-    bookService.getCategories().then((data) => {
-      setCategories(["All Categories", ...data]);
-    }).catch(console.error);
+    bookService
+      .getCategories()
+      .then((data) => {
+        setCategories(["All Categories", ...data]);
+      })
+      .catch(console.error);
   }, []);
 
   // Fetch books
@@ -38,25 +41,26 @@ export default function BooksList() {
     const fetchBooks = async () => {
       setLoading(true);
       try {
-        const query = searchTerm || undefined;
-        const category = selectedCategory !== "All Categories" ? selectedCategory : undefined;
-        
+        const query = searchTerm || "";
+        const category =
+          selectedCategory !== "All Categories" ? selectedCategory : undefined;
+
         // Use the searchBooks endpoint which now maps to GET /books with params
-        const response = await bookService.searchBooks(query || "");
-        
-        // Since the current API might not support all filters perfectly yet, we'll adapt
-        // Ideally backend should handle pagination, category filtering etc.
-        // Assuming response structure matches what we expect or adapting it
-        
+        const response = await bookService.searchBooks(
+          query,
+          category,
+          page - 1,
+          12
+        ); // page is 0-indexed in backend
+
         // If the API returns a PageResponse structure:
-        if (response.data) {
-            setBooks(response.data);
-            setTotalPages(response.totalPages);
+        if (response && response.data) {
+          setBooks(response.data);
+          setTotalPages(response.totalPages);
         } else if (Array.isArray(response)) {
-            // Fallback if it returns a list directly
-            setBooks(response);
+          // Fallback if it returns a list directly
+          setBooks(response);
         }
-        
       } catch (error) {
         console.error("Error fetching books:", error);
       } finally {
@@ -103,14 +107,14 @@ export default function BooksList() {
       return (
         <div className="bg-white rounded-lg shadow-md p-6 flex gap-6 hover:shadow-lg transition-shadow">
           <div className="w-24 h-32 flex-shrink-0">
-             <img 
-                src={imageUrl} 
-                alt={book.title}
-                className="w-full h-full object-cover rounded-lg"
-                onError={(e) => {
-                    (e.target as HTMLImageElement).src = "/api/placeholder/300/400";
-                }}
-             />
+            <img
+              src={imageUrl}
+              alt={book.title}
+              className="w-full h-full object-cover rounded-lg"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = "/api/placeholder/300/400";
+              }}
+            />
           </div>
           <div className="flex-1">
             <div className="flex justify-between items-start">
@@ -140,19 +144,20 @@ export default function BooksList() {
                   {book.description}
                 </p>
                 <div className="flex flex-wrap gap-2 mb-4">
-                  {book.categories && book.categories.slice(0, 3).map((tag: string) => (
-                    <span
-                      key={tag}
-                      className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded"
-                    >
-                      {tag}
-                    </span>
-                  ))}
+                  {book.categories &&
+                    book.categories.slice(0, 3).map((tag: string) => (
+                      <span
+                        key={tag}
+                        className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded"
+                      >
+                        {tag}
+                      </span>
+                    ))}
                 </div>
               </div>
               <div className="text-right">
                 <div className="text-2xl font-bold text-blue-600 mb-4">
-                  {typeof price === 'number' ? `$${price}` : price}
+                  {typeof price === "number" ? `$${price}` : price}
                 </div>
                 <div className="flex flex-col gap-2">
                   <Link
@@ -176,14 +181,14 @@ export default function BooksList() {
     return (
       <div className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow group">
         <div className="aspect-w-3 aspect-h-4 bg-gray-100 h-64 overflow-hidden relative">
-           <img 
-                src={imageUrl} 
-                alt={book.title}
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                    (e.target as HTMLImageElement).src = "/api/placeholder/300/400";
-                }}
-             />
+          <img
+            src={imageUrl}
+            alt={book.title}
+            className="w-full h-full object-cover"
+            onError={(e) => {
+              (e.target as HTMLImageElement).src = "/api/placeholder/300/400";
+            }}
+          />
           <button className="absolute top-4 right-4 p-2 bg-white rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity">
             <Heart className="h-4 w-4 text-gray-600" />
           </button>
@@ -191,10 +196,15 @@ export default function BooksList() {
         <div className="p-6">
           {book.categories && book.categories.length > 0 && (
             <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded mb-3 inline-block">
-                {book.categories[0]}
+              {book.categories[0]}
             </span>
           )}
-          <h3 className="font-bold text-lg mb-2 line-clamp-2" title={book.title}>{book.title}</h3>
+          <h3
+            className="font-bold text-lg mb-2 line-clamp-2"
+            title={book.title}
+          >
+            {book.title}
+          </h3>
           <p className="text-gray-600 mb-3 line-clamp-1">by {author}</p>
           <div className="flex items-center mb-3">
             <div className="flex items-center">
@@ -213,7 +223,7 @@ export default function BooksList() {
           </div>
           <div className="flex justify-between items-center mt-4">
             <span className="text-xl font-bold text-blue-600">
-               {typeof price === 'number' ? `$${price}` : price}
+              {typeof price === "number" ? `$${price}` : price}
             </span>
             <Link
               to={`/books/${book.id}`}
@@ -229,7 +239,6 @@ export default function BooksList() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Page Header */}
         <div className="mb-8">
@@ -306,24 +315,24 @@ export default function BooksList() {
 
         {/* Loading State */}
         {loading && (
-            <div className="flex justify-center py-12">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-            </div>
+          <div className="flex justify-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          </div>
         )}
 
         {/* Books Grid/List */}
         {!loading && (
-            <div
+          <div
             className={
-                viewMode === "grid"
+              viewMode === "grid"
                 ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
                 : "space-y-6"
             }
-            >
+          >
             {books.map((book) => (
-                <BookCard key={book.id} book={book} />
+              <BookCard key={book.id} book={book} />
             ))}
-            </div>
+          </div>
         )}
 
         {/* Empty State */}
@@ -343,8 +352,8 @@ export default function BooksList() {
         {!loading && books.length > 0 && totalPages > 1 && (
           <div className="mt-12 flex justify-center">
             <div className="flex space-x-2">
-              <button 
-                onClick={() => setPage(p => Math.max(1, p - 1))}
+              <button
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={page === 1}
                 className="px-4 py-2 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 disabled:opacity-50"
               >
@@ -353,8 +362,8 @@ export default function BooksList() {
               <span className="px-4 py-2 bg-blue-600 text-white rounded-lg">
                 {page}
               </span>
-              <button 
-                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+              <button
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={page === totalPages}
                 className="px-4 py-2 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 disabled:opacity-50"
               >

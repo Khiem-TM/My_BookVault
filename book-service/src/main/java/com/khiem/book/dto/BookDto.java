@@ -7,6 +7,19 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;
 import lombok.Setter;
 
+/**
+ * @deprecated This DTO is replaced by BookManagementRequest and BookResponse.
+ * Use the new Request/Response pattern for all new development.
+ * This class will be removed in version 3.0.
+ * 
+ * Migration:
+ * - For creating/updating books → Use BookManagementRequest
+ * - For reading book data → Use BookResponse
+ * 
+ * @see com.khiem.book.dto.request.BookManagementRequest
+ * @see com.khiem.book.dto.response.BookResponse
+ */
+@Deprecated(since = "2.0", forRemoval = true)
 @Getter
 @Setter
 public class BookDto implements Serializable {

@@ -16,7 +16,7 @@ public class BookMapper {
         dto.setDescription(book.getDescription());
         dto.setCategories(book.getCategories());
         dto.setPublishedAt(book.getPublishedAt());
-        dto.setStatus(book.getStatus());
+        dto.setStatus(book.getStatus() != null ? book.getStatus().name() : null);
         dto.setPublisher(book.getPublisher());
         dto.setThumbnailUrl(book.getThumbnailUrl());
         dto.setPageCount(book.getPageCount());
@@ -36,7 +36,7 @@ public class BookMapper {
         book.setDescription(dto.getDescription());
         book.setCategories(dto.getCategories());
         book.setPublishedAt(dto.getPublishedAt());
-        book.setStatus(dto.getStatus());
+        book.setStatus(dto.getStatus() != null ? com.khiem.book.entity.BookStatus.valueOf(dto.getStatus()) : null);
         book.setPublisher(dto.getPublisher());
         book.setThumbnailUrl(dto.getThumbnailUrl());
         book.setPageCount(dto.getPageCount());

@@ -21,7 +21,12 @@ import java.util.stream.Collectors;
 public class SecurityConfig {
 
     private final String[] PUBLIC_ENDPOINTS = {
-            "/books", "/books/{id}", "/books/categories"
+            "/actuator/health",
+            "/books",
+            "/books/",
+            "/books/**",
+            "/api/books",
+            "/api/books/**"
     };
 
     private final CustomJwtDecoder customJwtDecoder;
@@ -33,7 +38,9 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity httpSecurity) throws Exception {
         httpSecurity.authorizeHttpRequests(request -> request
-                .requestMatchers(HttpMethod.GET, PUBLIC_ENDPOINTS).permitAll()
+                .requestMatchers(HttpMethod.GET, "/books", "/books/").permitAll()
+                .requestMatchers(HttpMethod.GET, "/books/**").permitAll()
+                .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
                 .anyRequest().authenticated());
 
         httpSecurity.oauth2ResourceServer(oauth2 -> oauth2.jwt(jwtConfigurer -> jwtConfigurer

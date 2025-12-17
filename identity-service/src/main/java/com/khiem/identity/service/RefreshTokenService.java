@@ -17,13 +17,13 @@ import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 
 @Service
-@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+@FieldDefaults(level = AccessLevel.PRIVATE)
 @Slf4j
 public class RefreshTokenService {
-    RefreshTokenRepository refreshTokenRepository;
+    final RefreshTokenRepository refreshTokenRepository;
 
     @Value("${app.refresh-token-expiry-days:7}")
-    private int refreshTokenExpiryDays;
+    int refreshTokenExpiryDays;
 
     public RefreshTokenService(RefreshTokenRepository refreshTokenRepository) {
         this.refreshTokenRepository = refreshTokenRepository;

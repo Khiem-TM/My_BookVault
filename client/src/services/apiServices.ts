@@ -3,7 +3,7 @@ import axiosInstance from "../utils/axiosConfig";
 export const bookService = {
   // Get all books
   getBooks: async (page = 0, size = 20) => {
-    const response = await axiosInstance.get("/book/books", {
+    const response = await axiosInstance.get("/books", {
       params: { page, size },
     });
     return response.data.result;
@@ -11,21 +11,30 @@ export const bookService = {
 
   // Get book by ID
   getBookById: async (id: string) => {
-    const response = await axiosInstance.get(`/book/books/${id}`);
+    const response = await axiosInstance.get(`/books/${id}`);
     return response.data.result;
   },
 
   // Search books
-  searchBooks: async (query: string) => {
-    const response = await axiosInstance.get("/book/books", {
-      params: { keyword: query },
+  searchBooks: async (
+    query: string,
+    category?: string,
+    page = 0,
+    size = 20
+  ) => {
+    const params: any = { page, size };
+    if (query) params.keyword = query;
+    if (category && category !== "All Categories") params.category = category;
+
+    const response = await axiosInstance.get("/books", {
+      params,
     });
     return response.data.result;
   },
 
   // Get categories
   getCategories: async () => {
-    const response = await axiosInstance.get("/book/books/categories");
+    const response = await axiosInstance.get("/books/categories");
     return response.data.result;
   },
 

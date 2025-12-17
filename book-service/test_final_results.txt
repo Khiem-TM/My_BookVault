@@ -1,0 +1,174 @@
+
+======================================================================
+BOOK SERVICE - COMPREHENSIVE API TEST SUITE
+Started at: 2025-12-17 14:49:45
+======================================================================
+
+======================================================================
+SETUP: Getting Authentication Tokens
+======================================================================
+✅ Admin token: eyJhbGciOiJIUzUxMiJ9.eyJpc3MiOiJkZXZ0ZXJpYS5jb20iL...
+✅ User token: eyJhbGciOiJIUzUxMiJ9.eyJpc3MiOiJkZXZ0ZXJpYS5jb20iL...
+
+######################################################################
+# CATEGORY 1: Book Management (Admin) - 7 Tests
+######################################################################
+
+======================================================================
+[ADMIN] Test 1: Create Physical Book
+======================================================================
+Status: 403
+Response: {
+  "code": 1007,
+  "message": "You do not have permission"
+}
+❌ FAILED: HTTP 403
+
+======================================================================
+[ADMIN] Test 2: Create Digital Licensed Book
+======================================================================
+Status: 403
+Response: {
+  "code": 1007,
+  "message": "You do not have permission"
+}
+❌ FAILED: HTTP 403
+
+======================================================================
+[ADMIN] Test 3: Update Book - SKIPPED (No book ID)
+======================================================================
+
+======================================================================
+[ADMIN] Test 7: Delete Book - DEFERRED to cleanup
+======================================================================
+
+######################################################################
+# CATEGORY 2: Book Query (Public) - 6 Tests
+######################################################################
+
+======================================================================
+[PUBLIC] Test 8: Get All Books (Paginated)
+======================================================================
+Status: 200
+Response: {
+  "code": 1000,
+  "result": {
+    "currentPage": 1,
+    "totalPages": 0,
+    "pageSize": 10,
+    "totalElements": 0,
+    "data": []
+  }
+}
+✅ PASSED
+
+======================================================================
+[PUBLIC] Test 10: Search Books
+======================================================================
+Status: 400
+Response: {
+  "code": 9999,
+  "message": "Uncategorized error"
+}
+❌ FAILED: HTTP 400
+
+======================================================================
+[PUBLIC] Test 11: Get Borrowable Books
+======================================================================
+Status: 400
+Response: {
+  "code": 9999,
+  "message": "Uncategorized error"
+}
+❌ FAILED: HTTP 400
+
+======================================================================
+[PUBLIC] Test 12: Get Rentable Books
+======================================================================
+Status: 400
+Response: {
+  "code": 9999,
+  "message": "Uncategorized error"
+}
+❌ FAILED: HTTP 400
+
+======================================================================
+[PUBLIC] Test 13: Get Statistics
+======================================================================
+Status: 403
+Response: {
+  "code": 1007,
+  "message": "You do not have permission"
+}
+❌ FAILED: HTTP 403
+
+######################################################################
+# CATEGORY 3: Book Borrow (User) - 5 Tests
+######################################################################
+
+======================================================================
+[USER] Test 15: Get Active Borrows
+======================================================================
+Status: 400
+Response: {
+  "code": 9999,
+  "message": "Uncategorized error"
+}
+❌ FAILED: HTTP 400
+
+======================================================================
+[USER] Test 16: Get Borrow History
+======================================================================
+Status: 405
+Response: {
+  "timestamp": "2025-12-17T07:49:48.522+00:00",
+  "status": 405,
+  "error": "Method Not Allowed",
+  "path": "/api/borrows"
+}
+❌ FAILED: HTTP 405
+
+======================================================================
+[ADMIN] Test 18: Get Overdue Borrows
+======================================================================
+Status: 404
+Response: {
+  "timestamp": "2025-12-17T07:49:48.551+00:00",
+  "status": 404,
+  "error": "Not Found",
+  "path": "/api/borrows/overdue"
+}
+❌ FAILED: HTTP 404
+
+======================================================================
+TEST SUMMARY
+======================================================================
+✅ PASSED:  1
+❌ FAILED:  9
+⏭️  SKIPPED: 8
+📊 TOTAL:   18
+
+❌ Failed Tests:
+   - Create Physical Book
+   - Create Digital Licensed Book
+   - Search Books
+   - Get Borrowable Books
+   - Get Rentable Books
+   - Get Statistics
+   - Get Active Borrows
+   - Get Borrow History
+   - Get Overdue Borrows
+
+⏭️  Skipped Tests:
+   - Update Book
+   - Update Inventory
+   - Update Rental Config
+   - Set Book Status
+   - Delete Book - Deferred
+   - Get Book By ID
+   - Borrow Book
+   - Return Book
+
+======================================================================
+
+Completed at: 2025-12-17 14:49:48

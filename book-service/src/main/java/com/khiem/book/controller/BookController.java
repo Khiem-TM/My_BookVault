@@ -21,6 +21,7 @@ public class BookController {
     private final BookCrudService service;
 
     @GetMapping("/categories")
+    // @PreAuthorize("hasAuthority('book:read')")
     public ApiResponse<List<String>> getCategories() {
         return ApiResponse.<List<String>>builder()
                 .result(service.getCategories())
@@ -28,6 +29,7 @@ public class BookController {
     }
 
     @GetMapping
+    // @PreAuthorize("hasAuthority('book:read')")
     public ApiResponse<PageResponse<BookDto>> getBooks(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String category,
@@ -38,6 +40,7 @@ public class BookController {
     }
 
     @GetMapping("/{id}")
+    // @PreAuthorize("hasAuthority('book:read')")
     public ApiResponse<BookDto> getOne(@PathVariable Long id) {
         return ApiResponse.<BookDto>builder()
                 .result(service.findById(id))
@@ -45,7 +48,7 @@ public class BookController {
     }
 
     @GetMapping("/statistics")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('VIEW_STATISTICS') or hasAuthority('book:read')")
     public ApiResponse<Map<String, Object>> getStatistics() {
         return ApiResponse.<Map<String, Object>>builder()
                 .result(service.getStatistics())
@@ -53,7 +56,7 @@ public class BookController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('book:create')")
     public ApiResponse<BookDto> create(@Valid @RequestBody BookDto dto) {
         return ApiResponse.<BookDto>builder()
                 .result(service.create(dto))
@@ -61,7 +64,7 @@ public class BookController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('book:update')")
     public ApiResponse<BookDto> update(@PathVariable Long id, @Valid @RequestBody BookDto dto) {
         return ApiResponse.<BookDto>builder()
                 .result(service.update(id, dto))
@@ -69,7 +72,7 @@ public class BookController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('book:delete')")
     public ApiResponse<Void> delete(@PathVariable Long id) {
         service.delete(id);
         return ApiResponse.<Void>builder()
@@ -78,7 +81,7 @@ public class BookController {
     }
 
     @PostMapping("/provision")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('book:create')")
     public ApiResponse<Integer> provision(@RequestParam(defaultValue = "20") int count) {
         return ApiResponse.<Integer>builder()
                 .result(service.provision(count))
@@ -86,7 +89,7 @@ public class BookController {
     }
 
     @PostMapping("/import")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('book:create')")
     public ApiResponse<Integer> importExternal(
             @RequestParam String query,
             @RequestParam(defaultValue = "10") int limit) {

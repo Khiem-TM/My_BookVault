@@ -76,6 +76,86 @@ services:
     ports:
       - "6379:6379"
 
+  # Book Service - Clean Architecture (consolidated: orders, reviews, library, transactions)
+  book-service:
+    build:
+      context: ./book-service
+    container_name: book-service
+    restart: unless-stopped
+    ports:
+      - "8086:8086"
+    environment:
+      SPRING_DATASOURCE_URL: "jdbc:mysql://mysql:3306/bookvault?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true"
+      SPRING_DATASOURCE_USERNAME: "root"
+      SPRING_DATASOURCE_PASSWORD: "root"
+      REDIS_HOST: redis
+      MONGODB_HOST: mongodb
+    depends_on:
+      mysql:
+        condition: service_started
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -sf http://localhost:8086/actuator/health >/dev/null || exit 1",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # File Service
+  file-service:
+    build:
+      context: ./file-service
+    container_name: file-service
+    restart: unless-stopped
+    ports:
+      - "8084:8084"
+    environment:
+      SPRING_DATA_MONGODB_URI: "mongodb://root:root@mongodb:27017/file-service?authSource=admin"
+      APP_FILE_STORAGE_DIR: "/uploads"
+      APP_FILE_DOWNLOAD_PREFIX: "http://localhost:8888/api/v1/file/media/download/"
+    volumes:
+      - ./uploads:/uploads
+    depends_on:
+      mongodb:
+        condition: service_started
+    healthcheck:
+      test:
+        ["CMD-SHELL", "curl -s http://localhost:8084/file >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # Profile Service
+  profile-service:
+    build:
+      context: ./profile-service
+    container_name: profile-service
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    environment:
+      SPRING_NEO4J_URI: "bolt://neo4j:7687"
+      SPRING_NEO4J_AUTHENTICATION_USERNAME: "neo4j"
+      SPRING_NEO4J_AUTHENTICATION_PASSWORD: "12345678"
+      APP_SERVICES_FILE: "http://file-service:8084"
+    depends_on:
+      neo4j:
+        condition: service_started
+      file-service:
+        condition: service_started
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -s http://localhost:8081/profile >/dev/null || exit 1",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # Identity Service
   identity-service:
     build:
       context: ./identity-service
@@ -97,184 +177,16 @@ services:
       profile-service:
         condition: service_started
     healthcheck:
-      test: ["CMD-SHELL","curl -s http://localhost:8080/identity >/dev/null || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "curl -s http://localhost:8080/identity >/dev/null || exit 1",
+        ]
       interval: 10s
       timeout: 5s
       retries: 10
 
-  api-gateway:
-    build:
-      context: ./api-gateway
-    container_name: api-gateway
-    restart: unless-stopped
-    ports:
-      - "8888:8888"
-    environment:
-      SPRING_DATA_REDIS_HOST: "redis"
-      SPRING_PROFILES_ACTIVE: "docker"
-    depends_on:
-      identity-service:
-        condition: service_started
-      book-service:
-        condition: service_started
-      review-service:
-        condition: service_started
-      library-service:
-        condition: service_started
-      transaction-service:
-        condition: service_started
-      order-service:
-        condition: service_started
-      payment-service:
-        condition: service_started
-      file-service:
-        condition: service_started
-      chat-service:
-        condition: service_started
-      post-service:
-        condition: service_started
-      profile-service:
-        condition: service_started
-    healthcheck:
-      test: ["CMD-SHELL","curl -sf http://localhost:8888/actuator/health >/dev/null || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-
-  book-service:
-    build:
-      context: ./book-service
-    container_name: book-service
-    restart: unless-stopped
-    ports:
-      - "8086:8086"
-    environment:
-      SPRING_DATASOURCE_URL: "jdbc:mysql://mysql:3306/bookvault?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true"
-      SPRING_DATASOURCE_USERNAME: "root"
-      SPRING_DATASOURCE_PASSWORD: "root"
-    depends_on:
-      mysql:
-        condition: service_started
-    healthcheck:
-      test: ["CMD-SHELL","curl -sf http://localhost:8086/actuator/health >/dev/null || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-
-  review-service:
-    build:
-      context: ./review-service
-    container_name: review-service
-    restart: unless-stopped
-    ports:
-      - "8087:8087"
-    environment:
-      SPRING_DATA_MONGODB_URI: "mongodb://root:root@mongodb:27017/bookvault?authSource=admin"
-    depends_on:
-      mongodb:
-        condition: service_started
-    healthcheck:
-      test: ["CMD-SHELL","curl -sf http://localhost:8087/actuator/health >/dev/null || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-
-  library-service:
-    build:
-      context: ./library-service
-    container_name: library-service
-    restart: unless-stopped
-    ports:
-      - "8088:8088"
-    environment:
-      SPRING_DATASOURCE_URL: "jdbc:mysql://mysql:3306/bookvault?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true"
-      SPRING_DATASOURCE_USERNAME: "root"
-      SPRING_DATASOURCE_PASSWORD: "root"
-    depends_on:
-      mysql:
-        condition: service_started
-    healthcheck:
-      test: ["CMD-SHELL","curl -sf http://localhost:8088/actuator/health >/dev/null || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-
-  transaction-service:
-    build:
-      context: ./transaction-service
-    container_name: transaction-service
-    restart: unless-stopped
-    ports:
-      - "8090:8090"
-    environment:
-      SPRING_DATASOURCE_URL: "jdbc:mysql://mysql:3306/bookvault?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true"
-      SPRING_DATASOURCE_USERNAME: "root"
-      SPRING_DATASOURCE_PASSWORD: "root"
-    depends_on:
-      mysql:
-        condition: service_started
-    healthcheck:
-      test: ["CMD-SHELL","curl -sf http://localhost:8090/actuator/health >/dev/null || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-
-  order-service:
-    build:
-      context: ./order-service
-    container_name: order-service
-    restart: unless-stopped
-    ports:
-      - "8091:8091"
-    environment:
-      SPRING_DATASOURCE_URL: "jdbc:mysql://mysql:3306/bookvault?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true"
-      SPRING_DATASOURCE_USERNAME: "root"
-      SPRING_DATASOURCE_PASSWORD: "root"
-    depends_on:
-      mysql:
-        condition: service_started
-    healthcheck:
-      test: ["CMD-SHELL","curl -sf http://localhost:8091/actuator/health >/dev/null || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-
-  payment-service:
-    build:
-      context: ./payment-service
-    container_name: payment-service
-    restart: unless-stopped
-    ports:
-      - "8092:8092"
-    healthcheck:
-      test: ["CMD-SHELL","curl -sf http://localhost:8092/actuator/health >/dev/null || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-
-  profile-service:
-    build:
-      context: ./profile-service
-    container_name: profile-service
-    restart: unless-stopped
-    ports:
-      - "8081:8081"
-    environment:
-      SPRING_NEO4J_URI: "bolt://neo4j:7687"
-      SPRING_NEO4J_AUTHENTICATION_USERNAME: "neo4j"
-      SPRING_NEO4J_AUTHENTICATION_PASSWORD: "12345678"
-      APP_SERVICES_FILE: "http://file-service:8084"
-    depends_on:
-      neo4j:
-        condition: service_started
-      file-service:
-        condition: service_started
-    healthcheck:
-      test: ["CMD-SHELL","curl -s http://localhost:8081/profile >/dev/null || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-
+  # Post Service
   post-service:
     build:
       context: ./post-service
@@ -291,11 +203,13 @@ services:
       profile-service:
         condition: service_started
     healthcheck:
-      test: ["CMD-SHELL","curl -s http://localhost:8083/post >/dev/null || exit 1"]
+      test:
+        ["CMD-SHELL", "curl -s http://localhost:8083/post >/dev/null || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 10
 
+  # Chat Service
   chat-service:
     build:
       context: ./chat-service
@@ -312,33 +226,13 @@ services:
       profile-service:
         condition: service_started
     healthcheck:
-      test: ["CMD-SHELL","curl -s http://localhost:8085/chat >/dev/null || exit 1"]
+      test:
+        ["CMD-SHELL", "curl -s http://localhost:8085/chat >/dev/null || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 10
 
-  file-service:
-    build:
-      context: ./file-service
-    container_name: file-service
-    restart: unless-stopped
-    ports:
-      - "8084:8084"
-    environment:
-      SPRING_DATA_MONGODB_URI: "mongodb://root:root@mongodb:27017/file-service?authSource=admin"
-      APP_FILE_STORAGE_DIR: "/uploads"
-      APP_FILE_DOWNLOAD_PREFIX: "http://localhost:8888/api/v1/file/media/download/"
-    volumes:
-      - ./uploads:/uploads
-    depends_on:
-      mongodb:
-        condition: service_started
-    healthcheck:
-      test: ["CMD-SHELL","curl -s http://localhost:8084/file >/dev/null || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-
+  # Notification Service
   notification-service:
     build:
       context: ./notification-service
@@ -355,7 +249,65 @@ services:
       kafka:
         condition: service_started
     healthcheck:
-      test: ["CMD-SHELL","curl -s http://localhost:8082/notification >/dev/null || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "curl -s http://localhost:8082/notification >/dev/null || exit 1",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # Payment Service
+  payment-service:
+    build:
+      context: ./payment-service
+    container_name: payment-service
+    restart: unless-stopped
+    ports:
+      - "8092:8092"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -sf http://localhost:8092/actuator/health >/dev/null || exit 1",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # API Gateway
+  api-gateway:
+    build:
+      context: ./api-gateway
+    container_name: api-gateway
+    restart: unless-stopped
+    ports:
+      - "8888:8888"
+    environment:
+      SPRING_DATA_REDIS_HOST: "redis"
+      SPRING_PROFILES_ACTIVE: "docker"
+    depends_on:
+      identity-service:
+        condition: service_started
+      book-service:
+        condition: service_started
+      payment-service:
+        condition: service_started
+      file-service:
+        condition: service_started
+      chat-service:
+        condition: service_started
+      post-service:
+        condition: service_started
+      profile-service:
+        condition: service_started
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -sf http://localhost:8888/actuator/health >/dev/null || exit 1",
+        ]
       interval: 10s
       timeout: 5s
       retries: 10

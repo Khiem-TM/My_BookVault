@@ -36,6 +36,9 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
             Pattern.compile("^/api/v1/identity/auth/reset-password$"),
             Pattern.compile("^/api/v1/identity/auth/validate-reset-token$"),
             Pattern.compile("^/api/v1/identity/users/registration$"),
+            Pattern.compile("^/api/v1/books.*"),
+            Pattern.compile("^/api/v1/book/books.*"),
+            Pattern.compile("^/api/v1/?$"),
             Pattern.compile("^/actuator.*")
     );
 
