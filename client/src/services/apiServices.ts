@@ -40,9 +40,7 @@ export const bookService = {
 
   // Get books by category
   getBooksByCategory: async (categoryId: string) => {
-    const response = await axiosInstance.get(
-      `/book/categories/${categoryId}/books`
-    );
+    const response = await axiosInstance.get(`/books/categories/${categoryId}`);
     return response.data.result;
   },
 };
@@ -50,31 +48,25 @@ export const bookService = {
 export const reviewService = {
   // Get reviews for a book
   getReviews: async (bookId: string) => {
-    const response = await axiosInstance.get(`/review/books/${bookId}/reviews`);
+    const response = await axiosInstance.get(`/reviews/books/${bookId}`);
     return response.data.result;
   },
 
   // Create review
   createReview: async (bookId: string, data: any) => {
-    const response = await axiosInstance.post(
-      `/review/books/${bookId}/reviews`,
-      data
-    );
+    const response = await axiosInstance.post(`/reviews/books/${bookId}`, data);
     return response.data.result;
   },
 
   // Update review
   updateReview: async (reviewId: string, data: any) => {
-    const response = await axiosInstance.put(
-      `/review/reviews/${reviewId}`,
-      data
-    );
+    const response = await axiosInstance.put(`/reviews/${reviewId}`, data);
     return response.data.result;
   },
 
   // Delete review
   deleteReview: async (reviewId: string) => {
-    await axiosInstance.delete(`/review/reviews/${reviewId}`);
+    await axiosInstance.delete(`/reviews/${reviewId}`);
   },
 };
 

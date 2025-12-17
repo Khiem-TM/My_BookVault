@@ -48,7 +48,7 @@ const adminBookService = {
       if (category) params.append("category", category);
 
       const response = (await api.get(
-        `/book/books?${params.toString()}`
+        `/books?${params.toString()}`
       )) as ApiResponse<PageResponse<BookDto>>;
       console.log("✅ Books fetched:", response.result);
       return response.result!;
@@ -64,9 +64,7 @@ const adminBookService = {
   getBookById: async (id: number): Promise<BookDto> => {
     console.log(`📖 Admin fetching book: ${id}`);
     try {
-      const response = (await api.get(
-        `/book/books/${id}`
-      )) as ApiResponse<BookDto>;
+      const response = (await api.get(`/books/${id}`)) as ApiResponse<BookDto>;
       console.log("✅ Book details:", response.result);
       return response.result!;
     } catch (error) {
@@ -81,10 +79,7 @@ const adminBookService = {
   createBook: async (book: BookDto): Promise<BookDto> => {
     console.log("📝 Admin creating new book...", book);
     try {
-      const response = (await api.post(
-        "/book/books",
-        book
-      )) as ApiResponse<BookDto>;
+      const response = (await api.post("/books", book)) as ApiResponse<BookDto>;
       console.log("✅ Book created:", response.result);
       return response.result!;
     } catch (error) {
@@ -100,7 +95,7 @@ const adminBookService = {
     console.log(`✏️ Admin updating book: ${id}`, book);
     try {
       const response = (await api.put(
-        `/book/books/${id}`,
+        `/books/${id}`,
         book
       )) as ApiResponse<BookDto>;
       console.log("✅ Book updated:", response.result);
@@ -117,7 +112,7 @@ const adminBookService = {
   deleteBook: async (id: number): Promise<void> => {
     console.log(`🗑️ Admin deleting book: ${id}`);
     try {
-      await api.delete(`/book/books/${id}`);
+      await api.delete(`/books/${id}`);
       console.log("✅ Book deleted");
     } catch (error) {
       console.error("❌ Failed to delete book:", error);
@@ -148,7 +143,7 @@ const adminBookService = {
   getCategories: async (): Promise<string[]> => {
     console.log("📂 Admin fetching categories...");
     try {
-      const response = (await api.get("/book/books/categories")) as ApiResponse<
+      const response = (await api.get("/books/categories")) as ApiResponse<
         string[]
       >;
       console.log("✅ Categories retrieved:", response.result);
@@ -166,7 +161,7 @@ const adminBookService = {
     console.log("🚀 Admin provisioning books...", { count });
     try {
       const response = (await api.post(
-        `/book/books/provision?count=${count}`
+        `/books/provision?count=${count}`
       )) as ApiResponse<number>;
       console.log("✅ Books provisioned:", response.result);
       return response.result!;
@@ -183,7 +178,7 @@ const adminBookService = {
     console.log("📥 Admin importing books...", { query, limit });
     try {
       const response = (await api.post(
-        `/book/books/import?query=${query}&limit=${limit}`
+        `/books/import?query=${query}&limit=${limit}`
       )) as ApiResponse<number>;
       console.log("✅ Books imported:", response.result);
       return response.result!;

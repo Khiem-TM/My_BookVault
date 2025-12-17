@@ -14,7 +14,7 @@ public class DataSeedingConfig {
     private final GoogleBookImportService googleBookImportService;
 
     @Bean
-    @Profile("!test") // Don't run during tests
+    @Profile("!test") 
     public CommandLineRunner seedBooks() {
         return args -> {
             googleBookImportService.importBooks();

@@ -1,9 +1,5 @@
 package com.khiem.book.configuration;
 
-/**
- * Book Service Permissions
- * These permissions should match with Identity Service's Permission entity
- */
 public class BookPermissions {
     // Admin permissions
     public static final String CREATE_BOOK = "CREATE_BOOK";
