@@ -109,4 +109,11 @@ public class UserProfileService {
                 .map(userProfileMapper::toUserProfileResponse)
                 .toList();
     }
+
+    public void deleteByUserId(String userId) {
+        UserProfile userProfile = userProfileRepository
+                .findByUserId(userId)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+        userProfileRepository.deleteById(userProfile.getId());
+    }
 }

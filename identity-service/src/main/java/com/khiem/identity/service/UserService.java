@@ -82,9 +82,9 @@ public class UserService {
 
     public UserResponse getMyInfo() {
         var context = SecurityContextHolder.getContext();
-        String userId = context.getAuthentication().getName(); // This is actually the user ID from JWT sub field
+        String name = context.getAuthentication().getName();
 
-        User user = userRepository.findById(userId).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+        User user = userRepository.findByUsername(name).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
 
         return userMapper.toUserResponse(user);
     }
@@ -105,6 +105,11 @@ public class UserService {
     @PreAuthorize("hasRole('ADMIN')")
     public void deleteUser(String userId) {
         userRepository.deleteById(userId);
+        try {
+            profileClient.deleteProfile(userId);
+        } catch (Exception exception) {
+            log.error("Error while deleting profile for user: {}", userId, exception);
+        }
     }
 
     @PreAuthorize("hasRole('ADMIN')")
@@ -119,11 +124,15 @@ public class UserService {
                 userRepository.findById(id).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED)));
     }
 
-    public void resetUserPassword(String userId, String newPassword) {
+    public UserResponse updateMyProfile(UserUpdateRequest request) {
+        var context = SecurityContextHolder.getContext();
+        String userId = context.getAuthentication().getName();
+
         User user = userRepository.findById(userId).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
 
-        user.setPassword(passwordEncoder.encode(newPassword));
-        userRepository.save(user);
-        log.info("Password reset for user: {}", user.getUsername());
+        userMapper.updateUser(user, request);
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
+
+        return userMapper.toUserResponse(userRepository.save(user));
     }
 }

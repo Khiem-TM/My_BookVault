@@ -61,10 +61,12 @@ export const useAuthStore = create<AuthStore>((set) => ({
     console.log("🔐 Attempting login:", { username });
     set({ isLoading: true, error: null });
     try {
-      const token = await authService.login({ username, password });
+      // authService.login returns AuthResponse { token, expiryTime }
+      const authResponse = await authService.login({ username, password });
       console.log("✅ Login successful, token received");
 
       // Store token
+      const token = authResponse.token;
       localStorage.setItem("token", token);
 
       // Fetch user info

@@ -16,6 +16,7 @@ public class CustomJwtDecoder implements JwtDecoder {
         try {
             SignedJWT signedJWT = SignedJWT.parse(token);
 
+            // Custom JWT creation logic
             return new Jwt(
                     token,
                     signedJWT.getJWTClaimsSet().getIssueTime().toInstant(),

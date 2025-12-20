@@ -15,9 +15,13 @@ public class AuthenticationRequestInterceptor implements RequestInterceptor {
         ServletRequestAttributes servletRequestAttributes =
                 (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
 
+        // Lấy header Authorization từ request hiện tại
         var authHeader = servletRequestAttributes.getRequest().getHeader("Authorization");
 
         log.info("Header: {}", authHeader);
         if (StringUtils.hasText(authHeader)) template.header("Authorization", authHeader);
     }
 }
+
+// Đây là Feign Interceptor để kèm thêm Auth Header cho các request sang service khác
+// Giữ nguyên JWT khi service này gọi service khác

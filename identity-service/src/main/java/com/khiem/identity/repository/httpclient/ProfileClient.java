@@ -2,12 +2,14 @@ package com.khiem.identity.repository.httpclient;
 
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
 import com.khiem.identity.configuration.AuthenticationRequestInterceptor;
+import com.khiem.identity.dto.request.ApiResponse;
 import com.khiem.identity.dto.request.ProfileCreationRequest;
-import com.khiem.identity.dto.response.ApiResponse;
 import com.khiem.identity.dto.response.UserProfileResponse;
 
 @FeignClient(
@@ -17,4 +19,7 @@ import com.khiem.identity.dto.response.UserProfileResponse;
 public interface ProfileClient {
     @PostMapping(value = "/internal/users", produces = MediaType.APPLICATION_JSON_VALUE)
     ApiResponse<UserProfileResponse> createProfile(@RequestBody ProfileCreationRequest request);
+
+    @DeleteMapping(value = "/internal/users/{userId}")
+    void deleteProfile(@PathVariable("userId") String userId);
 }

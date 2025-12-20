@@ -35,6 +35,7 @@ public class UserProfileController {
                 .build();
     }
 
+    //    Lấy thông tin cá nhân
     @GetMapping("/users/my-profile")
     ApiResponse<UserProfileResponse> getMyProfile() {
         return ApiResponse.<UserProfileResponse>builder()
@@ -42,6 +43,7 @@ public class UserProfileController {
                 .build();
     }
 
+    //    Update thông tin cá nhân
     @PutMapping("/users/my-profile")
     ApiResponse<UserProfileResponse> updateMyProfile(@RequestBody UpdateProfileRequest request) {
         return ApiResponse.<UserProfileResponse>builder()
@@ -49,6 +51,7 @@ public class UserProfileController {
                 .build();
     }
 
+    //    update ảnh đại diện
     @PutMapping("/users/avatar")
     ApiResponse<UserProfileResponse> updateAvatar(@RequestParam("file") MultipartFile file) {
         return ApiResponse.<UserProfileResponse>builder()

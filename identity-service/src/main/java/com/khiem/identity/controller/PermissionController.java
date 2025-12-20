@@ -4,8 +4,8 @@ import java.util.List;
 
 import org.springframework.web.bind.annotation.*;
 
+import com.khiem.identity.dto.request.ApiResponse;
 import com.khiem.identity.dto.request.PermissionRequest;
-import com.khiem.identity.dto.response.ApiResponse;
 import com.khiem.identity.dto.response.PermissionResponse;
 import com.khiem.identity.service.PermissionService;
 
@@ -22,6 +22,7 @@ import lombok.extern.slf4j.Slf4j;
 public class PermissionController {
     PermissionService permissionService;
 
+    // Tạo permission mới
     @org.springframework.security.access.prepost.PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     ApiResponse<PermissionResponse> create(@RequestBody PermissionRequest request) {
@@ -30,6 +31,7 @@ public class PermissionController {
                 .build();
     }
 
+    // Lấy tất cả permission
     @org.springframework.security.access.prepost.PreAuthorize("hasRole('ADMIN')")
     @GetMapping
     ApiResponse<List<PermissionResponse>> getAll() {
@@ -38,6 +40,7 @@ public class PermissionController {
                 .build();
     }
 
+    // Xóa permission
     @org.springframework.security.access.prepost.PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{permission}")
     ApiResponse<Void> delete(@PathVariable String permission) {

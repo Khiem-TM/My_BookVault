@@ -1,4 +1,4 @@
-package com.khiem.identity.dto.response;
+package com.khiem.identity.dto.request;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 

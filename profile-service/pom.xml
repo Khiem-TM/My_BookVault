@@ -34,6 +34,11 @@
 			<groupId>org.springframework.cloud</groupId>
 			<artifactId>spring-cloud-starter-openfeign</artifactId>
 		</dependency>
+		 <!-- Kafka for consuming events -->
+		<dependency>
+			<groupId>org.springframework.kafka</groupId>
+			<artifactId>spring-kafka</artifactId>
+		</dependency>
 		<!-- https://mvnrepository.com/artifact/io.github.openfeign.form/feign-form-spring -->
 		<dependency>
 			<groupId>io.github.openfeign.form</groupId>

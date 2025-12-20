@@ -1,4 +1,4 @@
-import { api } from "../utils/axiosConfig";
+import api from "./apiClient";
 
 export interface Playlist {
   id: string;

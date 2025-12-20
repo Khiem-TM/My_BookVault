@@ -18,6 +18,7 @@ import org.springframework.security.web.SecurityFilterChain;
 @EnableMethodSecurity
 public class SecurityConfig {
 
+    // Các endpoint công khai không cần xác thực
     private static final String[] PUBLIC_ENDPOINTS = {
         "/users/registration",
         "/auth/token",
@@ -40,11 +41,13 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity httpSecurity) throws Exception {
+        // public endpoints không cần xác thực
         httpSecurity.authorizeHttpRequests(request -> request.requestMatchers(HttpMethod.POST, PUBLIC_ENDPOINTS)
                 .permitAll()
                 .anyRequest()
                 .authenticated());
 
+        // Cấu hình OAuth2 Resource Server với JWT
         httpSecurity.oauth2ResourceServer(oauth2 -> oauth2.jwt(jwtConfigurer -> jwtConfigurer
                         .decoder(customJwtDecoder)
                         .jwtAuthenticationConverter(jwtAuthenticationConverter()))
@@ -67,6 +70,8 @@ public class SecurityConfig {
 
     @Bean
     PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder(10);
+        return new BCryptPasswordEncoder(10); // Sử dụng BCrypt với strength 10
     }
 }
+
+// Cấu hình endpoint nào cần bảo mật hoặc không

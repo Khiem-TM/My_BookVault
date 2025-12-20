@@ -38,7 +38,7 @@ jwt:
 
 app:
   services:
-    profile: "http://${PROFILE_SERVICE_HOST:profile-service}:8081/profile"
+    profile: "http://${PROFILE_SERVICE_HOST:localhost}:8081/profile"
   email-verification-expiry-hours: 24
   password-reset-expiry-hours: 24
   refresh-token-expiry-days: 7

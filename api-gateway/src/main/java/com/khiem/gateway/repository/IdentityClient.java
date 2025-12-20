@@ -12,3 +12,5 @@ public interface IdentityClient {
     @PostExchange(url = "/auth/introspect", contentType = MediaType.APPLICATION_JSON_VALUE)
     Mono<ApiResponse<IntrospectResponse>> introspect(@RequestBody IntrospectRequest request);
 }
+
+// API để gọi đến identity-service để kiểm tra token hợp lệ hay không

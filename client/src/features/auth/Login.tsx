@@ -7,8 +7,8 @@ export default function Login() {
   const navigate = useNavigate();
   const { login, isLoading, error } = useAuthStore();
   const [formData, setFormData] = useState({
-    username: "admin",
-    password: "admin123",
+    username: "",
+    password: "",
   });
 
   const handleSubmit = async (e: React.FormEvent) => {

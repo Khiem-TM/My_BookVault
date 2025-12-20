@@ -1,4 +1,4 @@
-import api from "./apiClient";
+import api, { ApiResponse } from "./apiClient";
 
 export interface LoginRequest {
   username: string;
@@ -8,35 +8,77 @@ export interface LoginRequest {
 export interface RegisterRequest {
   username: string;
   password: string;
+  email: string;
   firstName: string;
   lastName: string;
+  dob?: string; // Format: YYYY-MM-DD
+  city?: string;
 }
+
+export interface UserUpdateRequest {
+  password?: string;
+  roles?: string[];
+}
+
+export interface IntrospectRequest {
+  token: string;
+}
+
+export interface RefreshRequest {
+  token: string;
+}
+
+export interface LogoutRequest {
+  token: string;
+}
+
+// response interface
 
 export interface AuthResponse {
   token: string;
-  expiryTime?: number;
+  expiryTime: string; // ISO Date string
+}
+
+export interface IntrospectResponse {
+  valid: boolean;
+}
+
+export interface RoleResponse {
+  name: string;
+  description: string;
+  permissions: PermissionResponse[];
+}
+
+export interface PermissionResponse {
+  name: string;
+  description: string;
 }
 
 export interface UserInfo {
   id: string;
   username: string;
   email: string;
-  firstName: string;
-  lastName: string;
   emailVerified: boolean;
-  roles: Array<{ id: string; name: string }>;
+  roles: RoleResponse[];
 }
+
+// auth service
 
 const authService = {
   /**
-   * Login user with credentials
+   *
+   * đăng nhập lấy token
+   * POST /identity/auth/token
    */
-  login: async (credentials: LoginRequest): Promise<string> => {
-    console.log("🔐 Calling login API with username...", credentials.username);
+  login: async (credentials: LoginRequest): Promise<AuthResponse> => {
+    console.log("🔐 Logging in user:", credentials.username);
     try {
-      const response = await api.post("/identity/auth/token", credentials);
-      console.log("✅ Login response:", response);
-      return response.result.token;
+      const response: ApiResponse<AuthResponse> = await api.post(
+        "/identity/auth/token",
+        credentials
+      );
+      console.log("✅ Login successful");
+      return response.result!;
     } catch (error) {
       console.error("❌ Login API error:", error);
       throw error;
@@ -44,14 +86,18 @@ const authService = {
   },
 
   /**
-   * Register new user
+   * đăng ký
+   * POST /identity/users/registration
    */
   register: async (data: RegisterRequest): Promise<UserInfo> => {
     console.log("📝 Calling register API...");
     try {
-      const response = await api.post("/identity/auth/register", data);
-      console.log("✅ Register response:", response);
-      return response.result;
+      const response: ApiResponse<UserInfo> = await api.post(
+        "/identity/users/registration",
+        data
+      );
+      console.log("✅ Register successful");
+      return response.result!;
     } catch (error) {
       console.error("❌ Register API error:", error);
       throw error;
@@ -59,28 +105,35 @@ const authService = {
   },
 
   /**
-   * Get current user info
+   * Lấy thông tin người dùng
+   * GET /identity/users/my-info
    */
   getCurrentUser: async (): Promise<UserInfo> => {
     console.log("👤 Fetching current user info...");
     try {
-      const response = await api.get("/identity/users/my-info");
-      console.log("✅ Current user:", response.result);
-      return response.result;
+      const response: ApiResponse<UserInfo> = await api.get(
+        "/identity/users/my-info"
+      );
+      console.log("✅ Current user fetched");
+      return response.result!;
     } catch (error) {
-      console.error("❌ Get user error:", error);
+      console.error("❌ Get current user error:", error);
       throw error;
     }
   },
 
   /**
-   * Get all users (Admin only)
+   * Lấy thông tin toàn bộ users (Admin only)
+   * GET /identity/users
    */
   getAllUsers: async (): Promise<UserInfo[]> => {
-    console.log("📋 Fetching all users (Admin)...");
+    console.log("👥 Fetching all users (Admin)...");
     try {
-      const response = await api.get("/identity/users");
-      return response.result;
+      const response: ApiResponse<UserInfo[]> = await api.get(
+        "/identity/users"
+      );
+      console.log("✅ All users fetched");
+      return response.result!;
     } catch (error) {
       console.error("❌ Get all users error:", error);
       throw error;
@@ -88,13 +141,17 @@ const authService = {
   },
 
   /**
-   * Get user by ID
+   * Lấy thông tin người dùng theo id
+   * GET /identity/users/{userId}
    */
-  getUserById: async (id: string): Promise<UserInfo> => {
-    console.log(`👤 Fetching user: ${id}...`);
+  getUserById: async (userId: string): Promise<UserInfo> => {
+    console.log("👤 Fetching user:", userId);
     try {
-      const response = await api.get(`/identity/users/${id}`);
-      return response.result;
+      const response: ApiResponse<UserInfo> = await api.get(
+        "/identity/users/" + userId
+      );
+      console.log("✅ User fetched");
+      return response.result!;
     } catch (error) {
       console.error("❌ Get user by ID error:", error);
       throw error;
@@ -102,17 +159,21 @@ const authService = {
   },
 
   /**
-   * Update user info
+   * Update (Admin only)
+   * PUT /identity/users/{userId}
    */
   updateUser: async (
-    id: string,
-    data: Partial<UserInfo>
+    userId: string,
+    data: UserUpdateRequest
   ): Promise<UserInfo> => {
-    console.log(`✏️ Updating user: ${id}...`);
+    console.log("✏️ Updating user:", userId);
     try {
-      const response = await api.put(`/identity/users/${id}`, data);
-      console.log("✅ User updated:", response.result);
-      return response.result;
+      const response: ApiResponse<UserInfo> = await api.put(
+        "/identity/users/" + userId,
+        data
+      );
+      console.log("✅ User updated");
+      return response.result!;
     } catch (error) {
       console.error("❌ Update user error:", error);
       throw error;
@@ -120,115 +181,71 @@ const authService = {
   },
 
   /**
-   * Update password
+   * Update thông tin cá nhân
+   * PUT /identity/users/me
    */
-  updatePassword: async (
-    userId: string,
-    oldPassword: string,
-    newPassword: string
-  ): Promise<void> => {
-    console.log(`🔑 Updating password for user: ${userId}...`);
+  updateMyProfile: async (data: UserUpdateRequest): Promise<UserInfo> => {
+    console.log("✏️ Updating my profile...");
     try {
-      await api.put(`/identity/users/${userId}`, {
-        oldPassword,
-        password: newPassword,
-      });
-      console.log("✅ Password updated");
+      const response: ApiResponse<UserInfo> = await api.put(
+        "/identity/users/me",
+        data
+      );
+      console.log("✅ Profile updated");
+      return response.result!;
     } catch (error) {
-      console.error("❌ Update password error:", error);
+      console.error("❌ Update profile error:", error);
       throw error;
     }
   },
 
   /**
-   * Verify email
+   * Xoá user (Admin only)
+   * DELETE /identity/users/{userId}
    */
-  verifyEmail: async (token: string): Promise<void> => {
-    console.log("✉️ Verifying email...");
+  deleteUser: async (userId: string): Promise<void> => {
+    console.log("🗑️ Deleting user:", userId);
     try {
-      await api.post("/identity/auth/verify-email", { token });
-      console.log("✅ Email verified");
+      await api.delete("/identity/users/" + userId);
+      console.log("✅ User deleted");
     } catch (error) {
-      console.error("❌ Email verification error:", error);
+      console.error("❌ Delete user error:", error);
       throw error;
     }
   },
 
   /**
-   * Resend verification email
+   * Introspect token - check if token is valid
+   * POST /identity/auth/introspect
    */
-  resendVerificationEmail: async (email: string): Promise<void> => {
-    console.log("✉️ Resending verification email...");
+  introspect: async (token: string): Promise<IntrospectResponse> => {
+    console.log("🔍 Introspecting token...");
     try {
-      await api.post("/identity/auth/resend-verification-email", { email });
-      console.log("✅ Verification email sent");
+      const response: ApiResponse<IntrospectResponse> = await api.post(
+        "/identity/auth/introspect",
+        { token }
+      );
+      console.log("✅ Token introspected");
+      return response.result!;
     } catch (error) {
-      console.error("❌ Resend verification error:", error);
+      console.error("❌ Introspect error:", error);
       throw error;
-    }
-  },
-
-  /**
-   * Request password reset
-   */
-  forgotPassword: async (email: string): Promise<void> => {
-    console.log("🔐 Requesting password reset...");
-    try {
-      await api.post("/identity/auth/forgot-password", { email });
-      console.log("✅ Password reset email sent");
-    } catch (error) {
-      console.error("❌ Forgot password error:", error);
-      throw error;
-    }
-  },
-
-  /**
-   * Reset password with token
-   */
-  resetPassword: async (
-    token: string,
-    password: string,
-    confirmPassword: string
-  ): Promise<void> => {
-    console.log("🔐 Resetting password...");
-    try {
-      await api.post("/identity/auth/reset-password", {
-        token,
-        password,
-        confirmPassword,
-      });
-      console.log("✅ Password reset successfully");
-    } catch (error) {
-      console.error("❌ Reset password error:", error);
-      throw error;
-    }
-  },
-
-  /**
-   * Validate reset token
-   */
-  validateResetToken: async (token: string): Promise<boolean> => {
-    console.log("🔑 Validating reset token...");
-    try {
-      const response = await api.get("/identity/auth/validate-reset-token", {
-        params: { token },
-      });
-      return response.result;
-    } catch (error) {
-      console.error("❌ Validate reset token error:", error);
-      return false;
     }
   },
 
   /**
    * Refresh token
+   * POST /identity/auth/refresh
    */
-  refreshToken: async (token: string): Promise<string> => {
+  refreshToken: async (token: string): Promise<AuthResponse> => {
     console.log("🔄 Refreshing token...");
     try {
-      const response = await api.post("/identity/auth/refresh", { token });
+      const response: ApiResponse<AuthResponse> = await api.post(
+        "/identity/auth/refresh",
+        { token }
+      );
       console.log("✅ Token refreshed");
-      return response.result.token;
+      return response.result!;
     } catch (error) {
       console.error("❌ Refresh token error:", error);
       throw error;
@@ -237,6 +254,7 @@ const authService = {
 
   /**
    * Logout user
+   * POST /identity/auth/logout
    */
   logout: async (): Promise<void> => {
     console.log("🚪 Logging out...");
@@ -246,27 +264,59 @@ const authService = {
         await api.post("/identity/auth/logout", { token });
       }
     } catch (error) {
-      console.error("❌ Logout error:", error);
+      console.error("Logout error:", error);
+      // Continue with logout even if API call fails
     } finally {
+      // Clear local storage
       localStorage.removeItem("token");
       localStorage.removeItem("user");
       localStorage.removeItem("role");
-      console.log("✅ Logout successful");
+      console.log("Logout successful");
     }
   },
 
   /**
-   * Delete user (Admin only)
+   * Check if user is authenticated
    */
-  deleteUser: async (userId: string): Promise<void> => {
-    console.log(`🗑️ Deleting user: ${userId}...`);
-    try {
-      await api.delete(`/identity/users/${userId}`);
-      console.log("✅ User deleted");
-    } catch (error) {
-      console.error("❌ Delete user error:", error);
-      throw error;
+  isAuthenticated: (): boolean => {
+    const token = localStorage.getItem("token");
+    return !!token;
+  },
+
+  /**
+   * Get stored token
+   */
+  getToken: (): string | null => {
+    return localStorage.getItem("token");
+  },
+
+  /**
+   * Store token
+   */
+  setToken: (token: string): void => {
+    localStorage.setItem("token", token);
+  },
+
+  /**
+   * Get stored user info
+   */
+  getStoredUser: (): UserInfo | null => {
+    const userStr = localStorage.getItem("user");
+    if (userStr) {
+      try {
+        return JSON.parse(userStr);
+      } catch {
+        return null;
+      }
     }
+    return null;
+  },
+
+  /**
+   * Store user info
+   */
+  setStoredUser: (user: UserInfo): void => {
+    localStorage.setItem("user", JSON.stringify(user));
   },
 };
 
