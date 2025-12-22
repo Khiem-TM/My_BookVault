@@ -56,10 +56,7 @@ export const userProfileService = {
     formData.append("file", file);
     const response = await api.put<ApiResponse<UserProfile>>(
       "/profile/users/avatar",
-      formData,
-      {
-        headers: { "Content-Type": "multipart/form-data" },
-      }
+      formData
     );
     return response.data.result!;
   },
@@ -72,5 +69,13 @@ export const userProfileService = {
       `/profile/users/${profileId}`
     );
     return response.data.result!;
+  },
+
+  search: async (request: { keyword: string }): Promise<UserProfile[]> => {
+    const response = await api.post<ApiResponse<UserProfile[]>>(
+      "/profile/users/search",
+      request
+    );
+    return response.data.result || [];
   },
 };

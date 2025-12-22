@@ -12,9 +12,9 @@ import com.khiem.profile.dto.response.FileResponse;
 
 @FeignClient(
         name = "file-service",
-        url = "http://localhost:8084",
+        url = "${app.services.file}",
         configuration = {AuthenticationRequestInterceptor.class})
 public interface FileClient {
-    @PostMapping(value = "/file/media/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(value = "/media/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     ApiResponse<FileResponse> uploadMedia(@RequestPart("file") MultipartFile file);
 }

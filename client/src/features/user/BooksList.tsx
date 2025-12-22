@@ -10,6 +10,7 @@ import {
   Heart,
 } from "lucide-react";
 import { bookSharedService } from "../../services/shared/BookSharedService";
+import { Pagination } from "@mui/material";
 
 export default function BooksList() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -359,27 +360,19 @@ export default function BooksList() {
         )}
 
         {/* Pagination */}
-        {!loading && books.length > 0 && totalPages > 1 && (
+        {!loading && books.length > 0 && (
           <div className="mt-12 flex justify-center">
-            <div className="flex space-x-2">
-              <button
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page === 1}
-                className="px-4 py-2 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 disabled:opacity-50"
-              >
-                Previous
-              </button>
-              <span className="px-4 py-2 bg-blue-600 text-white rounded-lg">
-                {page}
-              </span>
-              <button
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={page === totalPages}
-                className="px-4 py-2 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 disabled:opacity-50"
-              >
-                Next
-              </button>
-            </div>
+            <Pagination 
+              count={totalPages} 
+              page={page} 
+              onChange={(e: React.ChangeEvent<unknown>, value: number) => {
+                setPage(value);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }} 
+              color="primary"
+              size="large"
+              shape="rounded"
+            />
           </div>
         )}
       </div>

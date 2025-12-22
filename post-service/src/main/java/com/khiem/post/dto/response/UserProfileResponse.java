@@ -17,6 +17,7 @@ import java.time.LocalDate;
 public class UserProfileResponse {
     String id;
     String username;
+    String avatar; // Added avatar field
     String email;
     String firstName;
     String lastName;

@@ -86,6 +86,7 @@ public class UserProfileService {
         return userProfileMapper.toUserProfileResponse(userProfileRepository.save(profile));
     }
 
+    // Cập nhật avatar
     public UserProfileResponse updateAvatar(MultipartFile file) {
         var authentication = SecurityContextHolder.getContext().getAuthentication();
         String userId = authentication.getName();

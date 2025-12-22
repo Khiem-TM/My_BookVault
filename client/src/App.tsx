@@ -9,6 +9,7 @@ import PlaylistDetail from "./features/user/PlaylistDetail";
 import Profile from "./features/user/Profile";
 import Genres from "./features/user/Genres";
 import History from "./features/user/History";
+import Chat from "./features/user/Chat";
 import AdminDashboard from "./features/admin/AdminDashboard";
 import AuthPage from "./features/auth/AuthPage";
 import TotalBooks from "./features/admin/TotalBooks";
@@ -93,6 +94,7 @@ export default function App() {
         <Route path="profile" element={<Profile />} />
         <Route path="genres" element={<Genres />} />
         <Route path="history" element={<History />} />
+        <Route path="chat" element={<Chat />} />
       </Route>
 
       {/* Admin Routes - Protected + Role Check */}

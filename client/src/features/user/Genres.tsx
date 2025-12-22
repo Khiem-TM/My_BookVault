@@ -168,8 +168,18 @@ export default function Community() {
               {/* Post Header */}
               <div className="p-4 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center text-white font-bold text-sm">
-                    {post.username ? post.username.substring(0, 2).toUpperCase() : "U"}
+                  <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-200 flex-shrink-0 border border-gray-100">
+                     {post.avatar ? (
+                       <img 
+                          src={post.avatar} 
+                          alt={post.username} 
+                          className="w-full h-full object-cover"
+                        />
+                     ) : (
+                       <div className="w-full h-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center text-white font-bold text-sm">
+                         {post.username ? post.username.substring(0, 2).toUpperCase() : "U"}
+                       </div>
+                     )}
                   </div>
                   <div>
                     <h3 className="font-semibold text-gray-900">
@@ -222,7 +232,7 @@ export default function Community() {
         </div>
 
         {/* Pagination */}
-        {totalPages > 1 && (
+        {posts.length > 0 && (
           <div className="flex justify-center mt-8">
             <Pagination 
               count={totalPages} 
@@ -328,8 +338,18 @@ export default function Community() {
              
              <div className="p-6">
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold text-lg">
-                    {selectedPost.username ? selectedPost.username.substring(0, 2).toUpperCase() : "U"}
+                  <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-200 border border-gray-100 flex-shrink-0">
+                     {selectedPost.avatar ? (
+                       <img 
+                          src={selectedPost.avatar} 
+                          alt={selectedPost.username} 
+                          className="w-full h-full object-cover"
+                        />
+                     ) : (
+                       <div className="w-full h-full bg-gradient-to-tr from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold text-lg">
+                         {selectedPost.username ? selectedPost.username.substring(0, 2).toUpperCase() : "U"}
+                       </div>
+                     )}
                   </div>
                   <div>
                     <h3 className="font-bold text-xl text-gray-900">

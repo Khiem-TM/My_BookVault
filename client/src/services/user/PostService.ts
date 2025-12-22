@@ -4,6 +4,7 @@ export interface PostResponse {
   id: string;
   userId: string;
   username: string;
+  avatar?: string;
   content: string;
   created: string;
   createdDate: string;
@@ -41,11 +42,7 @@ export const postService = {
   uploadMedia: async (file: File) => {
     const formData = new FormData();
     formData.append("file", file);
-    const response = await api.post<any>("/file/media/upload", formData, {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
-    });
+    const response = await api.post<any>("/file/media/upload", formData);
     return response.data; // { code: 1000, result: { originalFileName, url } }
   },
 };

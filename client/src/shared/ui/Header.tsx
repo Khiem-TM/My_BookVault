@@ -102,6 +102,18 @@ export default function Header() {
             >
               Orders
             </NavLink>
+            <NavLink
+              to="/chat"
+              className={({ isActive }) =>
+                `px-3 py-2 rounded-md transition-colors ${
+                  isActive
+                    ? "text-blue-600 bg-blue-50"
+                    : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                }`
+              }
+            >
+              Messages
+            </NavLink>
           </nav>
 
           {/* User Actions - Avatar Button */}

@@ -66,10 +66,12 @@ public class PostService {
         var pageData = postRepository.findAllByUserId(userId, pageable);
 
         String username = userProfile != null ? userProfile.getUsername() : null;
+        String avatar = userProfile != null ? userProfile.getAvatar() : null;
         var postList = pageData.getContent().stream().map(post -> {
             var postResponse = postMapper.toPostResponse(post);
             postResponse.setCreated(dateTimeFormatter.format(post.getCreatedDate()));
             postResponse.setUsername(username);
+            postResponse.setAvatar(avatar);
             return postResponse;
         }).toList();
 
@@ -98,6 +100,7 @@ public class PostService {
                 var userProfile = profileClient.getProfile(post.getUserId()).getResult();
                 if (userProfile != null) {
                     postResponse.setUsername(userProfile.getUsername());
+                    postResponse.setAvatar(userProfile.getAvatar());
                 }
             } catch (Exception e) {
                 log.error("Error while getting user profile for user: {}", post.getUserId(), e);

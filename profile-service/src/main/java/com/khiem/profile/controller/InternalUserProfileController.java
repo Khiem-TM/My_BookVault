@@ -1,6 +1,5 @@
 package com.khiem.profile.controller;
 
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -36,11 +35,5 @@ public class InternalUserProfileController {
         return ApiResponse.<UserProfileResponse>builder()
                 .result(userProfileService.getByUserId(userId))
                 .build();
-    }
-
-    @DeleteMapping("/internal/users/{userId}")
-    ApiResponse<Void> deleteProfile(@PathVariable String userId) {
-        userProfileService.deleteByUserId(userId);
-        return ApiResponse.<Void>builder().build();
     }
 }
