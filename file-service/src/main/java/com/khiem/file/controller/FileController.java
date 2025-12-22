@@ -20,6 +20,7 @@ import java.io.IOException;
 public class FileController {
     FileService fileService;
 
+    // Upload file ảnh
     @PostMapping("/media/upload")
     ApiResponse<FileResponse> uploadMedia(@RequestParam("file") MultipartFile file) throws IOException {
         return ApiResponse.<FileResponse>builder()
@@ -27,6 +28,7 @@ public class FileController {
                 .build();
     }
 
+    // Download file ảnh
     @GetMapping("/media/download/{fileName}")
     ResponseEntity<Resource> downloadMedia(@PathVariable String fileName) throws IOException {
         var fileData = fileService.download(fileName);

@@ -1,444 +1,376 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
 import {
-  BookOpen,
-  Search,
-  Filter,
-  Grid,
-  List,
-  Star,
-  Users,
-  TrendingUp,
-  Clock,
+  MessageSquare,
   Heart,
-  Award,
+  Share2,
+  Image as ImageIcon,
+  MoreHorizontal,
+  X,
+  Send,
+  Loader2,
+  Globe,
+  User,
 } from "lucide-react";
-import { bookSharedService } from "../../services/shared/BookSharedService";
+import { postService, PostResponse } from "../../services/user/PostService";
+import { Pagination } from "@mui/material";
 
-interface GenreStats {
-  name: string;
-  description: string;
-  icon: string;
-  bookCount: number;
-  averageRating: number;
-  totalReaders: number;
-  trending: boolean;
-  popularBooks: any[];
-}
-
-export default function Genres() {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [sortBy, setSortBy] = useState<"name" | "popularity" | "books">(
-    "popularity"
-  );
-  const [genreStats, setGenreStats] = useState<GenreStats[]>([]);
+export default function Community() {
+  const [activeTab, setActiveTab] = useState<"all" | "my">("all");
+  const [posts, setPosts] = useState<PostResponse[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [selectedPost, setSelectedPost] = useState<PostResponse | null>(null);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
-  // Fetch categories and books on mount
+  // Form State
+  const [newPostContent, setNewPostContent] = useState("");
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const fetchPosts = async () => {
+    try {
+      setLoading(true);
+      const response =
+        activeTab === "all"
+          ? await postService.getAllPosts(page, 10)
+          : await postService.getMyPosts(page, 10);
+
+      if (response && response.result) {
+        setPosts(response.result.data);
+        setTotalPages(response.result.totalPages);
+      }
+    } catch (error) {
+      console.error("Failed to fetch posts", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const [categoriesData, booksData] = await Promise.all([
-          bookSharedService.getBookCategories(),
-          bookSharedService.getAllBooks({ size: 100 }),
-        ]);
+    fetchPosts();
+  }, [activeTab, page]);
 
-        const books = booksData.data || [];
-        const stats = (categoriesData || []).map((category: any) => {
-          const categoryBooks = books.filter(
-            (book: any) =>
-              (book.categories && book.categories.includes(category.name || category)) ||
-              (book as any).category === (category.name || category) ||
-              (book as any).categoryName === (category.name || category)
-          );
-          const averageRating =
-            categoryBooks.length > 0
-              ? categoryBooks.reduce(
-                  (sum: number, book: any) => sum + (book.rating || 0),
-                  0
-                ) / categoryBooks.length
-              : 0;
+  const handleCreatePost = async () => {
+    if (!newPostContent.trim()) return;
 
-          return {
-            name: category.name || category,
-            description: getGenreDescription(category.name || category),
-            icon: getGenreIcon(category.name || category),
-            bookCount: categoryBooks.length,
-            averageRating: Math.round(averageRating * 10) / 10,
-            totalReaders: Math.floor(Math.random() * 10000) + 1000,
-            trending: Math.random() > 0.6,
-            popularBooks: categoryBooks
-              .sort((a: any, b: any) => (b.rating || 0) - (a.rating || 0))
-              .slice(0, 3),
-          };
-        });
-
-        setGenreStats(stats);
-      } catch (err) {
-        console.error("Error fetching genres:", err);
-        setError("Failed to load genres");
-      } finally {
-        setLoading(false);
+    try {
+      setIsSubmitting(true);
+      
+      // Upload image if selected (Though backend doesn't store url yet, we simulate the flow)
+      if (selectedImage) {
+        await postService.uploadMedia(selectedImage);
       }
-    };
 
-    fetchData();
-  }, []);
+      await postService.createPost(newPostContent);
+      
+      // Reset and refresh
+      setShowCreateModal(false);
+      setNewPostContent("");
+      setSelectedImage(null);
+      setPage(1);
+      fetchPosts();
+    } catch (error) {
+      console.error("Failed to create post", error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
-  function getGenreDescription(genre: string): string {
-    const descriptions: { [key: string]: string } = {
-      "Classic Literature":
-        "Timeless works that have shaped literature and continue to inspire readers across generations.",
-      "Science Fiction":
-        "Imaginative stories exploring future worlds, advanced technology, and the possibilities of science.",
-      Romance:
-        "Stories of love, passion, and relationships that touch the heart and soul.",
-      Fantasy:
-        "Magical realms, mythical creatures, and epic adventures in worlds beyond imagination.",
-      Mystery:
-        "Intriguing puzzles, suspenseful plots, and the thrill of solving complex crimes.",
-      Philosophy:
-        "Deep thoughts and wisdom about life, existence, morality, and the human condition.",
-      Biography:
-        "Real-life stories of remarkable people and their extraordinary journeys.",
-      "Self-Help":
-        "Practical guidance and inspiration for personal growth and life improvement.",
-      History:
-        "Fascinating accounts of past events, civilizations, and the lessons they teach us.",
-      Adventure:
-        "Thrilling journeys, daring exploits, and exciting quests in exotic locations.",
-    };
-    return (
-      descriptions[genre] || "Discover amazing books in this captivating genre."
-    );
-  }
-
-  function getGenreIcon(genre: string): string {
-    const icons: { [key: string]: string } = {
-      "Classic Literature": "📚",
-      "Science Fiction": "🚀",
-      Romance: "💕",
-      Fantasy: "🧙‍♂️",
-      Mystery: "🔍",
-      Philosophy: "🤔",
-      Biography: "👤",
-      "Self-Help": "💪",
-      History: "🏛️",
-      Adventure: "🗺️",
-    };
-    return icons[genre] || "📖";
-  }
-
-  const totalBooks = genreStats.reduce(
-    (sum, genre) => sum + genre.bookCount,
-    0
-  );
-  const totalReaders = genreStats.reduce(
-    (sum, genre) => sum + genre.totalReaders,
-    0
-  );
-  const averageRating =
-    genreStats.length > 0
-      ? Math.round(
-          (genreStats.reduce((sum, genre) => sum + genre.averageRating, 0) /
-            genreStats.length) *
-            10
-        ) / 10
-      : 0;
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <p className="text-gray-600 text-lg">Loading genres...</p>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <p className="text-red-600 text-lg">{error}</p>
-      </div>
-    );
-  }
-
-  const filteredGenres = genreStats
-    .filter(
-      (genre) =>
-        genre.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        genre.description.toLowerCase().includes(searchTerm.toLowerCase())
-    )
-    .sort((a, b) => {
-      switch (sortBy) {
-        case "name":
-          return a.name.localeCompare(b.name);
-        case "books":
-          return b.bookCount - a.bookCount;
-        case "popularity":
-        default:
-          return b.totalReaders - a.totalReaders;
-      }
-    });
+  const getRandomImage = (id: string) => {
+    // Generate a consistent random image based on ID char code sum
+    const sum = id.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    const imgId = sum % 50; // Use picsum id 0-50
+    return `https://picsum.photos/id/${imgId}/600/400`;
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white border-b">
-        <div className="max-w-7xl mx-auto px-4 py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-600 rounded-full flex items-center justify-center">
-                <BookOpen className="h-6 w-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900">
-                  Book Genres
-                </h1>
-                <p className="text-gray-600">
-                  Explore diverse categories and find your next great read
-                </p>
-              </div>
-            </div>
+    <div className="min-h-screen bg-gray-50 pt-6 px-4 pb-20">
+      <div className="max-w-2xl mx-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Community</h1>
+            <p className="text-gray-600 mt-1">Connect and share with book lovers</p>
+          </div>
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2.5 rounded-full font-medium shadow-lg hover:shadow-xl transition-all flex items-center gap-2"
+          >
+            <Send className="w-4 h-4" />
+            Create Post
+          </button>
+        </div>
 
-            {/* Stats Overview */}
-            <div className="hidden md:flex items-center gap-6">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-purple-600">
-                  {genreStats.length}
-                </div>
-                <div className="text-sm text-gray-600">Genres</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-blue-600">
-                  {totalBooks}
-                </div>
-                <div className="text-sm text-gray-600">Books</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-green-600">
-                  {averageRating}★
-                </div>
-                <div className="text-sm text-gray-600">Avg Rating</div>
-              </div>
-            </div>
+        {/* Tabs */}
+        <div className="bg-white p-1 rounded-xl shadow-sm mb-6 flex">
+          <button
+            onClick={() => { setActiveTab("all"); setPage(1); }}
+            className={`flex-1 py-3 text-sm font-medium rounded-lg transition-all flex items-center justify-center gap-2 ${
+              activeTab === "all"
+                ? "bg-purple-50 text-purple-700 shadow-sm"
+                : "text-gray-600 hover:bg-gray-50"
+            }`}
+          >
+            <Globe className="w-4 h-4" />
+            Global Feed
+          </button>
+          <button
+            onClick={() => { setActiveTab("my"); setPage(1); }}
+            className={`flex-1 py-3 text-sm font-medium rounded-lg transition-all flex items-center justify-center gap-2 ${
+              activeTab === "my"
+                ? "bg-purple-50 text-purple-700 shadow-sm"
+                : "text-gray-600 hover:bg-gray-50"
+            }`}
+          >
+            <User className="w-4 h-4" />
+            My Posts
+          </button>
+        </div>
+
+        {/* Create Post Input (Quick Access) */}
+        <div className="bg-white rounded-xl shadow-sm p-4 mb-6 flex gap-4 items-center cursor-pointer transition-shadow hover:shadow-md" onClick={() => setShowCreateModal(true)}>
+          <div className="w-10 h-10 rounded-full bg-gray-200 flex-shrink-0" />
+          <div className="flex-1 bg-gray-100 rounded-full px-5 py-2.5 text-gray-500 text-sm">
+            What's on your mind? Share a book review...
+          </div>
+          <div className="p-2 text-purple-600 hover:bg-purple-50 rounded-full">
+            <ImageIcon className="w-5 h-5" />
           </div>
         </div>
-      </div>
 
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        {/* Search and Controls */}
-        <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
-          <div className="flex items-center gap-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search genres..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-              />
-            </div>
-
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as any)}
-              className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-            >
-              <option value="popularity">Most Popular</option>
-              <option value="name">Name (A-Z)</option>
-              <option value="books">Most Books</option>
-            </select>
+        {/* Loading State */}
+        {loading && (
+          <div className="flex justify-center py-12">
+            <Loader2 className="w-8 h-8 text-purple-600 animate-spin" />
           </div>
-
-          {/* View Mode Toggle */}
-          <div className="flex border rounded-lg overflow-hidden">
-            <button
-              onClick={() => setViewMode("grid")}
-              className={`p-2 ${
-                viewMode === "grid"
-                  ? "bg-purple-600 text-white"
-                  : "bg-white text-gray-600 hover:bg-gray-50"
-              }`}
-            >
-              <Grid className="h-4 w-4" />
-            </button>
-            <button
-              onClick={() => setViewMode("list")}
-              className={`p-2 ${
-                viewMode === "list"
-                  ? "bg-purple-600 text-white"
-                  : "bg-white text-gray-600 hover:bg-gray-50"
-              }`}
-            >
-              <List className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
+        )}
 
         {/* Empty State */}
-        {filteredGenres.length === 0 && (
-          <div className="text-center py-12">
-            <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <BookOpen className="h-12 w-12 text-gray-400" />
+        {!loading && posts.length === 0 && (
+          <div className="text-center py-12 bg-white rounded-xl shadow-sm">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <MessageSquare className="w-8 h-8 text-gray-400" />
             </div>
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">
-              No genres found
-            </h3>
-            <p className="text-gray-600">Try adjusting your search terms</p>
+            <h3 className="text-lg font-semibold text-gray-900">No posts yet</h3>
+            <p className="text-gray-500 mt-1">Be the first to share something!</p>
           </div>
         )}
 
-        {/* Genres Grid/List */}
-        {filteredGenres.length > 0 && (
-          <div
-            className={
-              viewMode === "grid"
-                ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
-                : "space-y-6"
-            }
-          >
-            {filteredGenres.map((genre) => (
-              <div
-                key={genre.name}
-                className={`bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden ${
-                  viewMode === "list" ? "flex" : ""
-                }`}
-              >
-                {/* Genre Icon/Header */}
-                <div
-                  className={`bg-gradient-to-r from-purple-500 to-pink-500 ${
-                    viewMode === "list" ? "w-32 flex-shrink-0" : "h-32"
-                  } flex items-center justify-center relative`}
-                >
-                  <div className="text-4xl">{genre.icon}</div>
-                  {genre.trending && (
-                    <div className="absolute top-3 right-3">
-                      <span className="bg-yellow-400 text-yellow-900 text-xs px-2 py-1 rounded-full font-bold flex items-center gap-1">
-                        <TrendingUp className="h-3 w-3" />
-                        Trending
-                      </span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Genre Content */}
-                <div className={`p-6 ${viewMode === "list" ? "flex-1" : ""}`}>
-                  <div className="flex justify-between items-start mb-3">
-                    <h3 className="text-xl font-bold text-gray-900">
-                      {genre.name}
+        {/* Posts List */}
+        <div className="space-y-6">
+          {posts.map((post) => (
+            <div
+              key={post.id}
+              className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow cursor-pointer border border-transparent hover:border-purple-100"
+              onClick={() => setSelectedPost(post)}
+            >
+              {/* Post Header */}
+              <div className="p-4 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center text-white font-bold text-sm">
+                    {post.username ? post.username.substring(0, 2).toUpperCase() : "U"}
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900">
+                      {post.username || "Unknown User"}
                     </h3>
-                    <div className="flex items-center gap-1">
-                      <Star className="h-4 w-4 text-yellow-400 fill-current" />
-                      <span className="text-sm font-medium">
-                        {genre.averageRating}
-                      </span>
-                    </div>
+                    <p className="text-xs text-gray-500">
+                      {post.created || "Just now"}
+                    </p>
                   </div>
+                </div>
+                <button className="text-gray-400 hover:text-gray-600 p-1">
+                  <MoreHorizontal className="w-5 h-5" />
+                </button>
+              </div>
 
-                  <p className="text-gray-600 mb-4 text-sm leading-relaxed">
-                    {genre.description}
-                  </p>
+              {/* Post Content */}
+              <div className="px-4 pb-3">
+                <p className="text-gray-800 whitespace-pre-line leading-relaxed">
+                  {post.content}
+                </p>
+              </div>
 
-                  {/* Genre Stats */}
-                  <div className="grid grid-cols-2 gap-4 mb-4">
-                    <div className="text-center p-3 bg-blue-50 rounded-lg">
-                      <div className="flex items-center justify-center gap-1 mb-1">
-                        <BookOpen className="h-4 w-4 text-blue-600" />
-                      </div>
-                      <div className="text-lg font-bold text-blue-600">
-                        {genre.bookCount}
-                      </div>
-                      <div className="text-xs text-blue-700">Books</div>
-                    </div>
-                    <div className="text-center p-3 bg-green-50 rounded-lg">
-                      <div className="flex items-center justify-center gap-1 mb-1">
-                        <Users className="h-4 w-4 text-green-600" />
-                      </div>
-                      <div className="text-lg font-bold text-green-600">
-                        {genre.totalReaders.toLocaleString()}
-                      </div>
-                      <div className="text-xs text-green-700">Readers</div>
-                    </div>
-                  </div>
+              {/* Placeholder Image (Backend workaround) */}
+              <div className="mt-2 relative bg-gray-100 aspect-video overflow-hidden">
+                <img
+                  src={getRandomImage(post.id)}
+                  alt="Post attachment"
+                  className="w-full h-full object-cover"
+                />
+              </div>
 
-                  {/* Popular Books Preview */}
-                  {genre.popularBooks.length > 0 && viewMode === "grid" && (
-                    <div className="mb-4">
-                      <h4 className="text-sm font-semibold text-gray-700 mb-2">
-                        Popular Books:
-                      </h4>
-                      <div className="space-y-1">
-                        {genre.popularBooks.slice(0, 2).map((book) => (
-                          <Link
-                            key={book.id}
-                            to={`/books/${book.id}`}
-                            className="block text-xs text-blue-600 hover:text-blue-800 truncate"
-                          >
-                            • {book.title}
-                          </Link>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Action Button */}
-                  <Link
-                    to={`/books?category=${encodeURIComponent(genre.name)}`}
-                    className="block w-full bg-purple-600 text-white text-center py-2 rounded-lg hover:bg-purple-700 transition-colors font-medium"
-                  >
-                    Explore {genre.name}
-                  </Link>
+              {/* Post Stats/Actions */}
+              <div className="px-4 py-3 border-t flex items-center justify-between text-gray-500 text-sm">
+                <div className="flex items-center gap-6">
+                  <button className="flex items-center gap-2 hover:text-red-500 transition-colors">
+                    <Heart className="w-5 h-5" />
+                    <span>{Math.floor(Math.random() * 50) + 1}</span>
+                  </button>
+                  <button className="flex items-center gap-2 hover:text-blue-500 transition-colors">
+                    <MessageSquare className="w-5 h-5" />
+                    <span>{Math.floor(Math.random() * 20)}</span>
+                  </button>
+                  <button className="flex items-center gap-2 hover:text-green-500 transition-colors">
+                    <Share2 className="w-5 h-5" />
+                  </button>
                 </div>
               </div>
-            ))}
+            </div>
+          ))}
+        </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex justify-center mt-8">
+            <Pagination 
+              count={totalPages} 
+              page={page} 
+              onChange={(e: React.ChangeEvent<unknown>, value: number) => {
+                setPage(value);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }} 
+              color="primary"
+              size="large"
+              shape="rounded"
+            />
           </div>
         )}
+      </div>
 
-        {/* Featured Section */}
-        <div className="mt-16">
-          <h2 className="text-2xl font-bold text-gray-900 mb-8 text-center">
-            Why Choose Different Genres?
-          </h2>
-          <div className="grid md:grid-cols-3 gap-8">
-            <div className="text-center p-6 bg-white rounded-xl shadow-lg">
-              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Heart className="h-8 w-8 text-blue-600" />
-              </div>
-              <h3 className="text-lg font-semibold mb-2">Find Your Passion</h3>
-              <p className="text-gray-600 text-sm">
-                Discover genres that resonate with your interests and expand
-                your reading horizons.
-              </p>
+      {/* Create Post Modal */}
+      {showCreateModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="flex items-center justify-between p-4 border-b">
+              <h2 className="text-lg font-bold text-gray-900">Create Post</h2>
+              <button
+                onClick={() => setShowCreateModal(false)}
+                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                disabled={isSubmitting}
+              >
+                <X className="w-5 h-5 text-gray-500" />
+              </button>
             </div>
+            
+            <div className="p-4">
+              <textarea
+                value={newPostContent}
+                onChange={(e) => setNewPostContent(e.target.value)}
+                placeholder="What do you want to share?"
+                className="w-full h-32 resize-none border-none focus:ring-0 text-lg placeholder:text-gray-400"
+                autoFocus
+              />
+              
+              {selectedImage && (
+                <div className="relative mt-2 rounded-xl overflow-hidden border">
+                  <img
+                    src={URL.createObjectURL(selectedImage)}
+                    alt="Preview"
+                    className="w-full h-48 object-cover"
+                  />
+                  <button
+                    onClick={() => setSelectedImage(null)}
+                    className="absolute top-2 right-2 p-1 bg-black/50 text-white rounded-full hover:bg-black/70"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
 
-            <div className="text-center p-6 bg-white rounded-xl shadow-lg">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Award className="h-8 w-8 text-green-600" />
+              <div className="mt-4 flex items-center justify-between border-t pt-4">
+                <div className="flex gap-2">
+                   <label className="p-2 text-purple-600 hover:bg-purple-50 rounded-full cursor-pointer transition-colors">
+                     <input
+                       type="file"
+                       accept="image/*"
+                       className="hidden"
+                       onChange={(e) => {
+                         if (e.target.files && e.target.files[0]) {
+                           setSelectedImage(e.target.files[0]);
+                         }
+                       }}
+                     />
+                    <ImageIcon className="w-5 h-5" />
+                   </label>
+                </div>
+                <button
+                  onClick={handleCreatePost}
+                  disabled={!newPostContent.trim() || isSubmitting}
+                  className="bg-purple-600 text-white px-6 py-2 rounded-full font-medium hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Posting...
+                    </>
+                  ) : (
+                    "Post"
+                  )}
+                </button>
               </div>
-              <h3 className="text-lg font-semibold mb-2">Quality Content</h3>
-              <p className="text-gray-600 text-sm">
-                Each genre features carefully curated books with high ratings
-                and positive reviews.
-              </p>
-            </div>
-
-            <div className="text-center p-6 bg-white rounded-xl shadow-lg">
-              <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Clock className="h-8 w-8 text-purple-600" />
-              </div>
-              <h3 className="text-lg font-semibold mb-2">Always Fresh</h3>
-              <p className="text-gray-600 text-sm">
-                Our library is constantly updated with new releases and trending
-                titles in every genre.
-              </p>
             </div>
           </div>
         </div>
-      </div>
+      )}
+
+      {/* Post Detail Modal */}
+      {selectedPost && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] shadow-2xl overflow-y-auto animate-in fade-in zoom-in duration-200">
+             <div className="sticky top-0 bg-white z-10 p-4 border-b flex justify-between items-center">
+               <h3 className="font-bold text-lg">Post Details</h3>
+               <button onClick={() => setSelectedPost(null)} className="p-2 hover:bg-gray-100 rounded-full">
+                 <X className="w-5 h-5" />
+               </button>
+             </div>
+             
+             <div className="p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold text-lg">
+                    {selectedPost.username ? selectedPost.username.substring(0, 2).toUpperCase() : "U"}
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-xl text-gray-900">
+                      {selectedPost.username || "Unknown User"}
+                    </h3>
+                    <p className="text-sm text-gray-500">
+                      {selectedPost.created}
+                    </p>
+                  </div>
+                </div>
+
+                <p className="text-gray-800 text-lg whitespace-pre-line leading-relaxed mb-6">
+                  {selectedPost.content}
+                </p>
+
+                <div className="relative bg-gray-100 rounded-xl overflow-hidden mb-6">
+                  <img
+                    src={getRandomImage(selectedPost.id)}
+                    alt="Post"
+                    className="w-full object-contain max-h-[500px]"
+                  />
+                </div>
+
+                <div className="border-t pt-4">
+                  <h4 className="font-semibold text-gray-700 mb-4">Comments (Simulated)</h4>
+                  <div className="space-y-4">
+                     {[1, 2, 3].map((i) => (
+                       <div key={i} className="flex gap-3">
+                         <div className="w-8 h-8 rounded-full bg-gray-200 flex-shrink-0" />
+                         <div className="bg-gray-50 p-3 rounded-2xl text-sm flex-1">
+                           <span className="font-bold text-gray-900 mr-2">User {i}</span>
+                           This is a great post! I really enjoyed reading about this book.
+                         </div>
+                       </div>
+                     ))}
+                  </div>
+                </div>
+             </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
