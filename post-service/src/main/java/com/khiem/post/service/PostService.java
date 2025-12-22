@@ -31,6 +31,7 @@ public class PostService {
     PostMapper postMapper;
     ProfileClient profileClient;
 
+    // Tạo post
     public PostResponse createPost(PostRequest request){
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
@@ -42,9 +43,11 @@ public class PostService {
                 .build();
 
         post = postRepository.save(post);
+        // Trả về post response
         return postMapper.toPostResponse(post);
     }
 
+    // Lấy post của user
     public PageResponse<PostResponse> getMyPosts(int page, int size){
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String userId = authentication.getName();
@@ -52,6 +55,7 @@ public class PostService {
         UserProfileResponse userProfile = null;
 
         try {
+            // Lấy thông tin user profile từ profile service
             userProfile = profileClient.getProfile(userId).getResult();
         } catch (Exception e) {
             log.error("Error while getting user profile", e);
@@ -66,6 +70,39 @@ public class PostService {
             var postResponse = postMapper.toPostResponse(post);
             postResponse.setCreated(dateTimeFormatter.format(post.getCreatedDate()));
             postResponse.setUsername(username);
+            return postResponse;
+        }).toList();
+
+        return PageResponse.<PostResponse>builder()
+                .currentPage(page)
+                .pageSize(pageData.getSize())
+                .totalPages(pageData.getTotalPages())
+                .totalElements(pageData.getTotalElements())
+                .data(postList)
+                .build();
+    }
+
+    // Lấy tất cả post
+    public PageResponse<PostResponse> getAllPosts(int page, int size){
+        Sort sort = Sort.by("createdDate").descending();
+        Pageable pageable = PageRequest.of(page - 1, size, sort);
+
+        var pageData = postRepository.findAll(pageable);
+
+        var postList = pageData.getContent().stream().map(post -> {
+            var postResponse = postMapper.toPostResponse(post);
+            postResponse.setCreated(dateTimeFormatter.format(post.getCreatedDate()));
+            
+            // Fetch user profile for each post (Potential N+1 issue, but acceptable for small page sizes)
+            try {
+                var userProfile = profileClient.getProfile(post.getUserId()).getResult();
+                if (userProfile != null) {
+                    postResponse.setUsername(userProfile.getUsername());
+                }
+            } catch (Exception e) {
+                log.error("Error while getting user profile for user: {}", post.getUserId(), e);
+            }
+            
             return postResponse;
         }).toList();
 

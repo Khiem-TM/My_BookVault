@@ -24,6 +24,7 @@ import java.util.List;
 public class PostController {
     PostService postService;
 
+    // Tạo post
     @PostMapping("/create")
     ApiResponse<PostResponse> createPost(@RequestBody PostRequest request){
         return ApiResponse.<PostResponse>builder()
@@ -31,6 +32,7 @@ public class PostController {
                 .build();
     }
 
+    // Lấy post của user
     @GetMapping("/my-posts")
     ApiResponse<PageResponse<PostResponse>> myPosts(
             @RequestParam(value = "page", required = false, defaultValue = "1") int page,
@@ -38,6 +40,17 @@ public class PostController {
             ){
         return ApiResponse.<PageResponse<PostResponse>>builder()
                 .result(postService.getMyPosts(page, size))
+                .build();
+    }
+
+    // Lấy tất cả post - (post)
+    @GetMapping
+    ApiResponse<PageResponse<PostResponse>> getAllPosts(
+            @RequestParam(value = "page", required = false, defaultValue = "1") int page,
+            @RequestParam(value = "size", required = false, defaultValue = "10") int size
+    ){
+        return ApiResponse.<PageResponse<PostResponse>>builder()
+                .result(postService.getAllPosts(page, size))
                 .build();
     }
 }

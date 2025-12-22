@@ -240,6 +240,7 @@ services:
     environment:
       SPRING_DATA_MONGODB_URI: "mongodb://root:root@mongodb:27017/notification-service?authSource=admin"
       SPRING_KAFKA_BOOTSTRAP_SERVERS: "kafka:9094"
+      BREVO_API_KEY: ${BREVO_API_KEY}
     depends_on:
       mongodb:
         condition: service_started
