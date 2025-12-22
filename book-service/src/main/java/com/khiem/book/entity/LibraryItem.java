@@ -10,7 +10,7 @@ public class LibraryItem {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     @Column(nullable = false)
-    private Long userId;
+    private String userId;
     @Column(nullable = false)
     private Long bookId;
     @Column(length = 20, nullable = false)
@@ -20,8 +20,8 @@ public class LibraryItem {
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
-    public Long getUserId() { return userId; }
-    public void setUserId(Long userId) { this.userId = userId; }
+    public String getUserId() { return userId; }
+    public void setUserId(String userId) { this.userId = userId; }
     public Long getBookId() { return bookId; }
     public void setBookId(Long bookId) { this.bookId = bookId; }
     public String getShelf() { return shelf; }

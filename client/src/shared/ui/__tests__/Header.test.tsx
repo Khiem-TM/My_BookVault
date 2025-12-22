@@ -16,7 +16,8 @@ describe('Header', () => {
     expect(screen.getByText('My Library')).toBeInTheDocument()
     expect(screen.getByText('Categories')).toBeInTheDocument()
     expect(screen.getByText('Orders')).toBeInTheDocument()
-    expect(screen.getByText('Profile')).toBeInTheDocument()
+    // expect(screen.getByText('Profile')).toBeInTheDocument() 
+    expect(screen.getByTitle('User Actions')).toBeInTheDocument()
   })
 
   it('search input works and navigates', async () => {

@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import authService, { UserInfo } from "../services/authService";
+import { authSharedService, UserInfo } from "../services/shared/AuthSharedService";
 
 // Helper function to extract role from JWT token
 function extractRoleFromToken(token: string): string {
@@ -25,7 +25,7 @@ function extractRoleFromToken(token: string): string {
 
     return "USER";
   } catch (error) {
-    console.error("❌ Failed to extract role from token:", error);
+    console.error("Failed to extract role from token:", error);
     return "USER";
   }
 }
@@ -61,21 +61,21 @@ export const useAuthStore = create<AuthStore>((set) => ({
     console.log("🔐 Attempting login:", { username });
     set({ isLoading: true, error: null });
     try {
-      // authService.login returns AuthResponse { token, expiryTime }
-      const authResponse = await authService.login({ username, password });
-      console.log("✅ Login successful, token received");
+      // authSharedService.login returns AuthResponse { token, expiryTime }
+      const authResponse = await authSharedService.login({ username, password });
+      console.log("Login successful, token received");
 
       // Store token
       const token = authResponse.token;
       localStorage.setItem("token", token);
 
       // Fetch user info
-      const user = await authService.getCurrentUser();
+      const user = await authSharedService.getCurrentUser();
       localStorage.setItem("user", JSON.stringify(user));
 
       // Extract role from token
       const role = extractRoleFromToken(token);
-      console.log("🔐 Extracted role from token:", role);
+      console.log("Extracted role from token:", role);
       localStorage.setItem("role", role);
 
       set({
@@ -86,9 +86,9 @@ export const useAuthStore = create<AuthStore>((set) => ({
         isLoading: false,
         error: null,
       });
-      console.log("✅ Auth store updated, user:", user, "role:", role);
+      console.log("Auth store updated, user:", user, "role:", role);
     } catch (error: any) {
-      console.error("❌ Login failed:", error);
+      console.error("Login failed:", error);
       const errorMsg =
         error.response?.data?.message || error.message || "Login failed";
       set({ error: errorMsg, isLoading: false });
@@ -100,11 +100,11 @@ export const useAuthStore = create<AuthStore>((set) => ({
     console.log("📝 Attempting registration:", { username: data.username });
     set({ isLoading: true, error: null });
     try {
-      await authService.register(data);
-      console.log("✅ Registration successful");
+      await authSharedService.register(data);
+      console.log("Registration successful");
       set({ isLoading: false });
     } catch (error: any) {
-      console.error("❌ Registration failed:", error);
+      console.error("Registration failed:", error);
       const errorMsg =
         error.response?.data?.message || error.message || "Registration failed";
       set({ error: errorMsg, isLoading: false });
@@ -116,7 +116,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
     console.log("🚪 Logging out...");
     set({ isLoading: true });
     try {
-      await authService.logout();
+      await authSharedService.logout();
       localStorage.removeItem("token");
       localStorage.removeItem("user");
       localStorage.removeItem("role");
@@ -127,9 +127,9 @@ export const useAuthStore = create<AuthStore>((set) => ({
         isAuthenticated: false,
         isLoading: false,
       });
-      console.log("✅ Logout successful");
+      console.log("Logout successful");
     } catch (error: any) {
-      console.error("❌ Logout error:", error);
+      console.error("Logout error:", error);
       set({ isLoading: false });
     }
   },
@@ -145,20 +145,20 @@ export const useAuthStore = create<AuthStore>((set) => ({
         role,
         isAuthenticated: true,
       });
-      console.log("📦 Auth restored from storage");
+      console.log("Auth restored from storage");
     }
   },
 
   getCurrentUser: async () => {
-    console.log("👤 Fetching current user info...");
+    console.log(" Fetching current user info...");
     set({ isLoading: true });
     try {
-      const user = await authService.getCurrentUser();
+      const user = await authSharedService.getCurrentUser();
       localStorage.setItem("user", JSON.stringify(user));
       set({ user, isLoading: false });
-      console.log("✅ Current user loaded:", user);
+      console.log(" Current user loaded:", user);
     } catch (error: any) {
-      console.error("❌ Failed to load user:", error);
+      console.error(" Failed to load user:", error);
       set({ error: "Failed to load user", isLoading: false });
     }
   },
@@ -180,7 +180,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
         isAuthenticated: true,
       });
       console.log(
-        "🔄 Auth initialized from storage, role:",
+        "Auth initialized from storage, role:",
         extractedRole || role
       );
     }

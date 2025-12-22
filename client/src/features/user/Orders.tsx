@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { api } from "../../services/apiClient";
 import { Link } from "react-router-dom";
+import { orderingService } from "../../services/user/OrderingService";
 import {
   Package,
   Clock,
@@ -35,67 +35,26 @@ interface Order {
   bookAuthor?: string;
 }
 
-const mockOrders: Order[] = [
-  {
-    id: "1",
-    userId: "1",
-    bookId: "1",
-    status: "PAID",
-    orderType: "BUY",
-    createdAt: "2025-12-08T10:30:00Z",
-    totalPrice: 19.99,
-    bookTitle: "The Great Gatsby",
-    bookAuthor: "F. Scott Fitzgerald",
-  },
-  {
-    id: "2",
-    userId: "1",
-    bookId: "2",
-    status: "PENDING",
-    orderType: "RENT",
-    createdAt: "2025-12-09T14:15:00Z",
-    rentalDays: 14,
-    rentalPrice: 9.99,
-    rentalStartDate: "2025-12-09T14:15:00Z",
-    rentalEndDate: "2025-12-23T14:15:00Z",
-    bookTitle: "To Kill a Mockingbird",
-    bookAuthor: "Harper Lee",
-  },
-  {
-    id: "3",
-    userId: "1",
-    bookId: "3",
-    status: "RETURNED",
-    orderType: "RENT",
-    createdAt: "2025-11-28T09:00:00Z",
-    rentalDays: 7,
-    rentalPrice: 4.99,
-    rentalStartDate: "2025-11-28T09:00:00Z",
-    rentalEndDate: "2025-12-05T09:00:00Z",
-    bookTitle: "1984",
-    bookAuthor: "George Orwell",
-  },
-];
+
 
 export default function Orders() {
   const qc = useQueryClient();
-  const userId = "1";
+  const userId = "1"; // TODO: get from auth store
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [orderTypeFilter, setOrderTypeFilter] = useState<string>("ALL");
   const [searchTerm, setSearchTerm] = useState("");
 
-  const { data: orders = mockOrders, isLoading } = useQuery({
-    queryKey: ["orders", userId],
+  const { data: orders = [], isLoading } = useQuery({
+    queryKey: ["orders"],
     queryFn: async () => {
       try {
-        const response = await api.get(`/order/orders/by-user/${userId}`);
-        return response.data || mockOrders;
+        const data = await orderingService.getMyOrders();
+        return data || [];
       } catch (err) {
-        console.log("Using mock orders data");
-        return mockOrders;
+        console.error("Failed to fetch orders", err);
+        return [];
       }
     },
-    enabled: !!userId,
   });
 
   // Filter logic

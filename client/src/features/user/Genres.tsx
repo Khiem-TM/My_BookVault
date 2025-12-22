@@ -13,7 +13,7 @@ import {
   Heart,
   Award,
 } from "lucide-react";
-import { bookService } from "../../services/apiServices";
+import { bookSharedService } from "../../services/shared/BookSharedService";
 
 interface GenreStats {
   name: string;
@@ -42,16 +42,17 @@ export default function Genres() {
       try {
         setLoading(true);
         const [categoriesData, booksData] = await Promise.all([
-          bookService.getCategories(),
-          bookService.getBooks(0, 100),
+          bookSharedService.getBookCategories(),
+          bookSharedService.getAllBooks({ size: 100 }),
         ]);
 
-        const books = booksData.content || [];
+        const books = booksData.data || [];
         const stats = (categoriesData || []).map((category: any) => {
           const categoryBooks = books.filter(
             (book: any) =>
-              book.category === (category.name || category) ||
-              book.categoryName === (category.name || category)
+              (book.categories && book.categories.includes(category.name || category)) ||
+              (book as any).category === (category.name || category) ||
+              (book as any).categoryName === (category.name || category)
           );
           const averageRating =
             categoryBooks.length > 0

@@ -56,7 +56,7 @@ public class BookController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAuthority('book:create')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ApiResponse<BookDto> create(@Valid @RequestBody BookDto dto) {
         return ApiResponse.<BookDto>builder()
                 .result(service.create(dto))
@@ -64,7 +64,7 @@ public class BookController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAuthority('book:update')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ApiResponse<BookDto> update(@PathVariable Long id, @Valid @RequestBody BookDto dto) {
         return ApiResponse.<BookDto>builder()
                 .result(service.update(id, dto))
@@ -72,7 +72,7 @@ public class BookController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAuthority('book:delete')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ApiResponse<Void> delete(@PathVariable Long id) {
         service.delete(id);
         return ApiResponse.<Void>builder()
@@ -81,7 +81,7 @@ public class BookController {
     }
 
     @PostMapping("/provision")
-    @PreAuthorize("hasAuthority('book:create')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ApiResponse<Integer> provision(@RequestParam(defaultValue = "20") int count) {
         return ApiResponse.<Integer>builder()
                 .result(service.provision(count))
@@ -89,7 +89,7 @@ public class BookController {
     }
 
     @PostMapping("/import")
-    @PreAuthorize("hasAuthority('book:create')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ApiResponse<Integer> importExternal(
             @RequestParam String query,
             @RequestParam(defaultValue = "10") int limit) {

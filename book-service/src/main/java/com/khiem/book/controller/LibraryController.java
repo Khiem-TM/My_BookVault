@@ -24,7 +24,7 @@ public class LibraryController {
     }
 
     @GetMapping("/by-shelf")
-    public List<LibraryItemDto> byShelf(@RequestParam Long userId, @RequestParam String shelf) {
+    public List<LibraryItemDto> byShelf(@RequestParam String userId, @RequestParam String shelf) {
         return service.byShelf(userId, shelf);
     }
 

@@ -13,7 +13,10 @@ import {
   MessageCircle,
 } from "lucide-react";
 import { useAuthStore } from "../../store/authStore";
-import { bookService, reviewService } from "../../services/apiServices";
+import { bookSharedService } from "../../services/shared/BookSharedService";
+import { reviewService } from "../../services/user/ReviewingService";
+import { libraryService } from "../../services/user/LibraryService";
+import { orderingService } from "../../services/user/OrderingService";
 
 export default function BookDetail() {
   const { id } = useParams<{ id: string }>();
@@ -26,6 +29,7 @@ export default function BookDetail() {
   >("description");
   const [userReview, setUserReview] = useState({ rating: 5, comment: "" });
   const [isAddedToLibrary, setIsAddedToLibrary] = useState(false);
+  const [isPending, setIsPending] = useState(false);
   
   // Fetch book details and reviews
   useEffect(() => {
@@ -34,7 +38,7 @@ export default function BookDetail() {
       setLoading(true);
       try {
         const [bookData, reviewsData] = await Promise.all([
-          bookService.getBookById(id),
+          bookSharedService.getBookById(id),
           reviewService.getReviews(id).catch(() => [])
         ]);
         setBook(bookData);
@@ -57,6 +61,39 @@ export default function BookDetail() {
     };
     fetchData();
   }, [id]);
+
+  /* Check if book is already in library or ordered */
+  useEffect(() => {
+    const checkUserStatus = async () => {
+      if (!user || !id) return;
+      try {
+        // We catch errors here silently as strictly failing to fetch "my books" shouldn't block the page
+        const [myBooks, myOrders] = await Promise.all([
+             libraryService.getMyBooks().catch(() => []),
+             orderingService.getMyOrders().catch(() => [])
+        ]);
+
+        const inLib = myBooks.some((item) => item.bookId.toString() === id.toString());
+        setIsAddedToLibrary(inLib);
+
+        // Check if there's a focused order for this book
+        // Assuming simplistic structure for now: order has bookId at top or in items
+        const existingOrder = myOrders.find((order: any) => 
+            order.bookId?.toString() === id.toString() || 
+            (order.orderItems && order.orderItems.some((item: any) => item.bookId?.toString() === id.toString()))
+        );
+        
+        // If pending order exists, maybe we want to disable borrow too?
+        if (existingOrder && existingOrder.status === 'PENDING') {
+             setIsPending(true);
+        }
+      } catch (err) {
+        console.warn("Could not check library status:", err);
+      }
+    };
+    
+    checkUserStatus();
+  }, [id, user]);
 
   if (loading) {
     return (
@@ -100,10 +137,39 @@ export default function BookDetail() {
     }
   };
 
-  const handleBorrowBook = () => {
-    // Simulate borrowing
-    setIsAddedToLibrary(true);
-    alert("Book added to your library!");
+  const handleBorrowBook = async () => {
+    if (!user) {
+        alert("Please login to borrow books");
+        return;
+    }
+
+    setLoading(true);
+    try {
+        const isFree = book.price === 0 || book.price === "Free" || !book.price;
+        
+        if (isFree) {
+            // Free book -> Add directly to library
+            await libraryService.addToLibrary(book.id);
+            setIsAddedToLibrary(true);
+            alert("Book added to your library!");
+        } else {
+            // Paid book -> Create pending order
+            await orderingService.createOrder({
+                bookId: book.id,
+                status: "PENDING"
+            });
+            alert("Order created! Waiting for approval.");
+            // Update local state to prevent duplicate requests
+             setIsPending(true);
+        }
+    } catch (error: any) {
+        console.error("Error borrowing book:", error);
+        // Extract exact message if available
+        const serverMessage = error.message || "Unknown error";
+        alert(`Failed to process request: ${serverMessage}`);
+    } finally {
+        setLoading(false);
+    }
   };
 
   // Helper values
@@ -203,15 +269,15 @@ export default function BookDetail() {
                 <div className="flex gap-3">
                   <button
                     onClick={handleBorrowBook}
-                    disabled={isAddedToLibrary}
+                    disabled={isAddedToLibrary || isPending}
                     className={`px-6 py-3 rounded-lg font-semibold flex items-center gap-2 transition-colors ${
-                      isAddedToLibrary
+                      isAddedToLibrary || isPending
                         ? "bg-green-100 text-green-800 cursor-not-allowed"
                         : "bg-blue-600 text-white hover:bg-blue-700"
                     }`}
                   >
                     <BookOpen className="h-5 w-5" />
-                    {isAddedToLibrary ? "In Library" : "Borrow Book"}
+                    {isAddedToLibrary ? "In Library" : isPending ? "Pending Approval" : "Borrow Book"}
                   </button>
                   <button className="px-6 py-3 border border-gray-300 rounded-lg font-semibold text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-2">
                     <ShoppingCart className="h-5 w-5" />

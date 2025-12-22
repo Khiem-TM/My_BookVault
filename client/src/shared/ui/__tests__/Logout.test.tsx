@@ -26,7 +26,9 @@ describe('Logout', () => {
         <Header/>
       </MemoryRouter>
     )
-    await user.click(screen.getByText('Logout'))
+    const userButton = screen.getByTitle('User Actions')
+    await user.click(userButton)
+    await user.click(screen.getByText('Log Out'))
     await waitFor(() => {
       expect(localStorage.getItem('token')).toBeNull()
       expect(localStorage.getItem('role')).toBeNull()

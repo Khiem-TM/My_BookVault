@@ -14,7 +14,11 @@ import {
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import adminBookService, { BookDto } from "../../services/adminBookService";
+import {
+  bookManagementService,
+  BookDto,
+} from "../../services/admin/BookManagementService";
+import { bookSharedService } from "../../services/shared/BookSharedService";
 
 const bookSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -51,17 +55,17 @@ export default function TotalBooks() {
   } = useQuery({
     queryKey: ["admin-books", currentPage, pageSize, search],
     queryFn: async () =>
-      await adminBookService.getAllBooks(
-        currentPage,
-        pageSize,
-        search || undefined
-      ),
+      await bookSharedService.getAllBooks({
+        page: currentPage,
+        size: pageSize,
+        keyword: search || undefined,
+      }),
   });
 
   const updateMutation = useMutation({
     mutationFn: async (data: BookFormData) => {
       if (!editingBook?.id) throw new Error("No book selected");
-      return adminBookService.updateBook(editingBook.id, data);
+      return bookManagementService.updateBook(editingBook.id, data);
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin-books"] });
@@ -83,7 +87,7 @@ export default function TotalBooks() {
 
   const createMutation = useMutation({
     mutationFn: async (data: BookFormData) => {
-      return adminBookService.createBook(data as BookDto);
+      return bookManagementService.createBook(data as BookDto);
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin-books"] });
@@ -105,7 +109,7 @@ export default function TotalBooks() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      return adminBookService.deleteBook(id);
+      return bookManagementService.deleteBook(id);
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin-books"] });
@@ -221,9 +225,15 @@ export default function TotalBooks() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {booksData?.content && booksData.content.length > 0 ? (
-                booksData.content.map((book) => (
-                  <tr key={book.id} className="hover:bg-gray-50 transition">
+              {booksData?.data && booksData.data.length > 0 ? (
+                booksData.data.map((book) => (
+                  <tr
+                    key={book.id}
+                    className="hover:bg-gray-50 transition cursor-pointer"
+                    onClick={() =>
+                      (window.location.href = `/admin/books/${book.id}`)
+                    }
+                  >
                     <td className="px-6 py-4 text-sm font-medium text-gray-900">
                       {book.title}
                     </td>
@@ -231,34 +241,45 @@ export default function TotalBooks() {
                       {book.author}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-600">
-                      {book.category || "-"}
+                      {(book as any).category ||
+                        (book.categories && book.categories[0]) ||
+                        "-"}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-600">
                       {book.publisher || "-"}
                     </td>
-                    <td className="px-6 py-4 text-center space-x-2">
-                      <button
-                        onClick={() => handleEdit(book)}
-                        className="inline-flex items-center gap-1 px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition"
-                      >
-                        <Edit2 className="h-4 w-4" />
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => {
-                          if (
-                            confirm(
-                              `Are you sure you want to delete "${book.title}"?`
-                            )
-                          ) {
-                            deleteMutation.mutate(book.id!);
-                          }
-                        }}
-                        className="inline-flex items-center gap-1 px-3 py-1 text-sm bg-red-100 text-red-700 rounded hover:bg-red-200 transition"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                        Delete
-                      </button>
+                    <td
+                      className="px-6 py-4"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <div className="flex items-center justify-center gap-2">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEdit(book);
+                          }}
+                          className="inline-flex items-center justify-center p-2 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition"
+                          title="Edit"
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (
+                              confirm(
+                                `Are you sure you want to delete "${book.title}"?`
+                              )
+                            ) {
+                              deleteMutation.mutate(book.id!);
+                            }
+                          }}
+                          className="inline-flex items-center justify-center p-2 bg-red-100 text-red-700 rounded hover:bg-red-200 transition"
+                          title="Delete"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -375,8 +396,8 @@ function BookForm({
           isbn: book.isbn || "",
           pageCount: book.pageCount || 0,
           language: book.language || "en",
-          category: book.category || "",
-          coverUrl: book.coverUrl || "",
+          category: (book as any).category || book.categories?.[0] || "",
+          coverUrl: (book as any).coverUrl || book.thumbnailUrl || "",
         }
       : {
           title: "",

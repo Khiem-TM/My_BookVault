@@ -11,7 +11,7 @@ import jakarta.validation.Valid;
 import java.util.List;
 
 @RestController
-@RequestMapping("/playlists")
+@RequestMapping("/library/playlists")
 @RequiredArgsConstructor
 public class PlaylistController {
 
@@ -22,7 +22,7 @@ public class PlaylistController {
      */
     @GetMapping
     public ResponseEntity<List<PlaylistDto>> getUserPlaylists(
-            @RequestHeader("X-User-Id") Long userId) {
+            @RequestHeader("X-User-Id") String userId) {
         return ResponseEntity.ok(playlistService.getUserPlaylists(userId));
     }
 
@@ -32,7 +32,7 @@ public class PlaylistController {
     @GetMapping("/{id}")
     public ResponseEntity<PlaylistDto> getPlaylistDetail(
             @PathVariable Long id,
-            @RequestHeader("X-User-Id") Long userId) {
+            @RequestHeader("X-User-Id") String userId) {
         return ResponseEntity.ok(playlistService.getPlaylistDetail(id, userId));
     }
 
@@ -42,7 +42,7 @@ public class PlaylistController {
     @PostMapping
     public ResponseEntity<PlaylistDto> createPlaylist(
             @Valid @RequestBody PlaylistDto dto,
-            @RequestHeader("X-User-Id") Long userId) {
+            @RequestHeader("X-User-Id") String userId) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(playlistService.createPlaylist(userId, dto));
     }
@@ -54,7 +54,7 @@ public class PlaylistController {
     public ResponseEntity<PlaylistDto> updatePlaylist(
             @PathVariable Long id,
             @Valid @RequestBody PlaylistDto dto,
-            @RequestHeader("X-User-Id") Long userId) {
+            @RequestHeader("X-User-Id") String userId) {
         return ResponseEntity.ok(playlistService.updatePlaylist(id, userId, dto));
     }
 
@@ -64,7 +64,7 @@ public class PlaylistController {
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deletePlaylist(
             @PathVariable Long id,
-            @RequestHeader("X-User-Id") Long userId) {
+            @RequestHeader("X-User-Id") String userId) {
         playlistService.deletePlaylist(id, userId);
         return ResponseEntity.noContent().build();
     }
@@ -76,7 +76,7 @@ public class PlaylistController {
     public ResponseEntity<PlaylistDto> addBookToPlaylist(
             @PathVariable Long id,
             @PathVariable Long bookId,
-            @RequestHeader("X-User-Id") Long userId) {
+            @RequestHeader("X-User-Id") String userId) {
         return ResponseEntity.ok(playlistService.addBookToPlaylist(id, userId, bookId));
     }
 
@@ -87,7 +87,7 @@ public class PlaylistController {
     public ResponseEntity<PlaylistDto> removeBookFromPlaylist(
             @PathVariable Long id,
             @PathVariable Long bookId,
-            @RequestHeader("X-User-Id") Long userId) {
+            @RequestHeader("X-User-Id") String userId) {
         return ResponseEntity.ok(playlistService.removeBookFromPlaylist(id, userId, bookId));
     }
 
@@ -98,7 +98,7 @@ public class PlaylistController {
     public ResponseEntity<PlaylistDto> reorderPlaylistBooks(
             @PathVariable Long id,
             @Valid @RequestBody List<Long> bookIds,
-            @RequestHeader("X-User-Id") Long userId) {
+            @RequestHeader("X-User-Id") String userId) {
         return ResponseEntity.ok(playlistService.reorderPlaylistBooks(id, userId, bookIds));
     }
 }

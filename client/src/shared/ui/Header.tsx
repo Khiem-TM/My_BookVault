@@ -1,69 +1,90 @@
-import { NavLink, Link, useNavigate } from "react-router-dom";
-import { BookOpen, Search, LogOut } from "lucide-react";
-import { useState } from "react";
-import { api } from "../../services/apiClient";
+import { NavLink, useNavigate } from "react-router-dom";
+import { Search, LogOut, User, Settings, X } from "lucide-react";
+import { useState, Fragment } from "react";
+import { Dialog, Transition } from "@headlessui/react";
+import { useAuthStore } from "../../store/authStore";
 
 export default function Header() {
-  const [term, setTerm] = useState("");
   const navigate = useNavigate();
-  function submit(e: React.FormEvent) {
-    e.preventDefault();
-    const q = term.trim();
-    if (q) navigate(`/books?search=${encodeURIComponent(q)}`);
-  }
-  async function logout() {
-    const token = localStorage.getItem("token");
-    try {
-      if (token) await api.post("/identity/identity/auth/logout", { token });
-    } catch {}
-    localStorage.removeItem("token");
-    localStorage.removeItem("role");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isUserModalOpen, setIsUserModalOpen] = useState(false);
+  const { logout, user } = useAuthStore();
+
+  const handleSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      if (searchTerm.trim()) {
+        navigate(`/books?search=${encodeURIComponent(searchTerm)}`);
+      }
+    }
+  };
+
+  const handleLogout = () => {
+    logout();
+    setIsUserModalOpen(false);
     navigate("/auth");
-  }
+  };
+
+  const openUserModal = () => setIsUserModalOpen(true);
+  const closeUserModal = () => setIsUserModalOpen(false);
+
   return (
-    <header className="sticky top-0 z-40 border-b bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-        <div className="flex items-center gap-6">
-          <Link to="/" className="flex items-center gap-2 group">
-            <BookOpen className="h-7 w-7 text-blue-600 transition-transform group-hover:scale-105" />
-            <span className="text-lg font-bold tracking-tight">BookVault</span>
-          </Link>
-          <nav className="hidden md:flex items-center gap-3 text-sm">
+    <>
+      <header className="sticky top-0 z-40 border-b bg-white/80 backdrop-blur shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+          {/* Logo */}
+          <NavLink
+            to="/"
+            className="font-bold text-2xl tracking-tight bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent hover:opacity-80 transition-opacity"
+          >
+            BookVault
+          </NavLink>
+
+          {/* Search */}
+          <div className="flex-1 max-w-md relative hidden md:block">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search books, authors..."
+              className="w-full pl-10 pr-4 py-2 rounded-full border border-gray-200 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-sm"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              onKeyDown={handleSearch}
+            />
+          </div>
+
+          {/* Navigation */}
+          <nav className="flex items-center gap-1 md:gap-2 text-sm font-medium">
             <NavLink
               to="/books"
               className={({ isActive }) =>
-                `px-3 py-2 rounded hover:bg-blue-50 transition ${
-                  isActive ? "text-blue-600 font-medium" : "text-gray-700"
+                `px-3 py-2 rounded-md transition-colors ${
+                  isActive
+                    ? "text-blue-600 bg-blue-50"
+                    : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
                 }`
               }
             >
               Browse
             </NavLink>
             <NavLink
-              to="/library"
+              to="/playlists"
               className={({ isActive }) =>
-                `px-3 py-2 rounded hover:bg-blue-50 transition ${
-                  isActive ? "text-blue-600 font-medium" : "text-gray-700"
+                `px-3 py-2 rounded-md transition-colors ${
+                  isActive
+                    ? "text-blue-600 bg-blue-50"
+                    : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
                 }`
               }
             >
               My Library
             </NavLink>
             <NavLink
-              to="/playlists"
-              className={({ isActive }) =>
-                `px-3 py-2 rounded hover:bg-blue-50 transition ${
-                  isActive ? "text-blue-600 font-medium" : "text-gray-700"
-                }`
-              }
-            >
-              Playlists
-            </NavLink>
-            <NavLink
               to="/genres"
               className={({ isActive }) =>
-                `px-3 py-2 rounded hover:bg-blue-50 transition ${
-                  isActive ? "text-blue-600 font-medium" : "text-gray-700"
+                `px-3 py-2 rounded-md transition-colors ${
+                  isActive
+                    ? "text-blue-600 bg-blue-50"
+                    : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
                 }`
               }
             >
@@ -72,41 +93,140 @@ export default function Header() {
             <NavLink
               to="/orders"
               className={({ isActive }) =>
-                `px-3 py-2 rounded hover:bg-blue-50 transition ${
-                  isActive ? "text-blue-600 font-medium" : "text-gray-700"
+                `px-3 py-2 rounded-md transition-colors ${
+                  isActive
+                    ? "text-blue-600 bg-blue-50"
+                    : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
                 }`
               }
             >
               Orders
             </NavLink>
           </nav>
+
+          {/* User Actions - Avatar Button */}
+          <div className="flex items-center gap-2 pl-4 border-l border-gray-200">
+            <button
+              onClick={openUserModal}
+              className="relative w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white ring-2 ring-transparent hover:ring-blue-200 transition-all shadow-sm"
+              title="User Actions"
+            >
+              {user?.avatar ? (
+                <img
+                  src={user.avatar}
+                  alt={user.username}
+                  className="w-full h-full rounded-full object-cover"
+                />
+              ) : (
+                <span className="font-semibold text-sm">
+                  {user?.username?.charAt(0).toUpperCase() || "U"}
+                </span>
+              )}
+            </button>
+          </div>
         </div>
-        <div className="flex items-center gap-4">
-          <form onSubmit={submit} className="relative hidden sm:block">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <input
-              value={term}
-              onChange={(e) => setTerm(e.target.value)}
-              placeholder="Search books, authors..."
-              className="pl-9 pr-3 py-2 w-56 md:w-72 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-            />
-          </form>
-          <NavLink
-            to="/profile"
-            className="inline-flex items-center gap-2 px-3 py-2 rounded hover:bg-gray-50 transition"
+      </header>
+
+      {/* User Modal */}
+      <Transition appear show={isUserModalOpen} as={Fragment}>
+        <Dialog as="div" className="relative z-50" onClose={closeUserModal}>
+          <Transition.Child
+            as={Fragment}
+            enter="ease-out duration-300"
+            enterFrom="opacity-0"
+            enterTo="opacity-100"
+            leave="ease-in duration-200"
+            leaveFrom="opacity-100"
+            leaveTo="opacity-0"
           >
-            <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-200 to-purple-200" />
-            <span className="hidden md:inline text-sm">Profile</span>
-          </NavLink>
-          <button
-            onClick={logout}
-            className="inline-flex items-center gap-2 px-3 py-2 rounded hover:bg-red-50 text-red-600 transition"
-          >
-            <LogOut className="h-4 w-4" />
-            <span className="hidden md:inline text-sm">Logout</span>
-          </button>
-        </div>
-      </div>
-    </header>
+            <div className="fixed inset-0 bg-black/25 backdrop-blur-sm" />
+          </Transition.Child>
+
+          <div className="fixed inset-0 overflow-y-auto">
+            <div className="flex min-h-full items-center justify-center p-4 text-center">
+              <Transition.Child
+                as={Fragment}
+                enter="ease-out duration-300"
+                enterFrom="opacity-0 scale-95"
+                enterTo="opacity-100 scale-100"
+                leave="ease-in duration-200"
+                leaveFrom="opacity-100 scale-100"
+                leaveTo="opacity-0 scale-95"
+              >
+                <Dialog.Panel className="w-full max-w-sm transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all border border-gray-100">
+                  <div className="flex justify-between items-center mb-6">
+                    <Dialog.Title
+                      as="h3"
+                      className="text-lg font-bold leading-6 text-gray-900"
+                    >
+                      User Menu
+                    </Dialog.Title>
+                    <button
+                      onClick={closeUserModal}
+                      className="text-gray-400 hover:text-gray-500 transition-colors"
+                    >
+                      <X className="h-5 w-5" />
+                    </button>
+                  </div>
+
+                  <div className="flex flex-col gap-4">
+                    {/* User Info Preview */}
+                    <div className="flex items-center gap-4 p-3 bg-gray-50 rounded-xl mb-2">
+                       <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-lg">
+                          {user?.username?.charAt(0).toUpperCase() || "U"}
+                       </div>
+                       <div>
+                          <p className="font-semibold text-gray-900">{user?.username || "Guest"}</p>
+                          <p className="text-xs text-gray-500">{user?.email || "No email"}</p>
+                       </div>
+                    </div>
+
+                    <div className="h-px bg-gray-100 my-1"></div>
+
+                    <button
+                      onClick={() => {
+                        navigate("/profile");
+                        closeUserModal();
+                      }}
+                      className="flex items-center gap-3 w-full p-3 rounded-xl hover:bg-gray-50 transition-colors text-gray-700 font-medium group"
+                    >
+                      <div className="p-2 bg-blue-100 rounded-lg text-blue-600 group-hover:bg-blue-200 transition-colors">
+                        <User className="h-5 w-5" />
+                      </div>
+                      My Profile
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        // navigate("/settings"); // Placeholder
+                        closeUserModal();
+                      }}
+                      className="flex items-center gap-3 w-full p-3 rounded-xl hover:bg-gray-50 transition-colors text-gray-700 font-medium group"
+                    >
+                      <div className="p-2 bg-purple-100 rounded-lg text-purple-600 group-hover:bg-purple-200 transition-colors">
+                        <Settings className="h-5 w-5" />
+                      </div>
+                      System Settings
+                    </button>
+
+                     <div className="h-px bg-gray-100 my-1"></div>
+
+                    <button
+                      onClick={handleLogout}
+                      className="flex items-center gap-3 w-full p-3 rounded-xl hover:bg-red-50 transition-colors text-red-600 font-medium group"
+                    >
+                      <div className="p-2 bg-red-100 rounded-lg text-red-600 group-hover:bg-red-200 transition-colors">
+                        <LogOut className="h-5 w-5" />
+                      </div>
+                      Log Out
+                    </button>
+                  </div>
+                </Dialog.Panel>
+              </Transition.Child>
+            </div>
+          </div>
+        </Dialog>
+      </Transition>
+    </>
   );
 }

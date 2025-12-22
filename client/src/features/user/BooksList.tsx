@@ -9,12 +9,13 @@ import {
   BookOpen,
   Heart,
 } from "lucide-react";
-import { bookService } from "../../services/apiServices";
+import { bookSharedService } from "../../services/shared/BookSharedService";
 
 export default function BooksList() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [books, setBooks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [categories, setCategories] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState(
     searchParams.get("search") || ""
@@ -28,8 +29,8 @@ export default function BooksList() {
 
   // Fetch categories
   useEffect(() => {
-    bookService
-      .getCategories()
+    bookSharedService
+      .getBookCategories()
       .then((data) => {
         setCategories(["All Categories", ...data]);
       })
@@ -45,13 +46,13 @@ export default function BooksList() {
         const category =
           selectedCategory !== "All Categories" ? selectedCategory : undefined;
 
-        // Use the searchBooks endpoint which now maps to GET /books with params
-        const response = await bookService.searchBooks(
-          query,
-          category,
-          page - 1,
-          12
-        ); // page is 0-indexed in backend
+        // Use the getAllBooks which maps to GET /books with params
+        const response = await bookSharedService.getAllBooks({
+          keyword: query,
+          category: category,
+          page: page - 1,
+          size: 12
+        });
 
         // If the API returns a PageResponse structure:
         if (response && response.data) {
@@ -63,6 +64,7 @@ export default function BooksList() {
         }
       } catch (error) {
         console.error("Error fetching books:", error);
+        setError("Failed to load books. Please try again later.");
       } finally {
         setLoading(false);
       }
@@ -317,6 +319,14 @@ export default function BooksList() {
         {loading && (
           <div className="flex justify-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          </div>
+        )}
+
+        {/* Error State */}
+        {!loading && error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-8 rounded-lg text-center">
+             <p className="font-medium">{error}</p>
+             <button onClick={() => window.location.reload()} className="mt-4 text-blue-600 hover:underline">Retry</button>
           </div>
         )}
 

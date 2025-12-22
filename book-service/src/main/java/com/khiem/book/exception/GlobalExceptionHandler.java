@@ -71,7 +71,8 @@ public class GlobalExceptionHandler {
             log.info(attributes.toString());
 
         } catch (IllegalArgumentException e) {
-
+            String fieldName = exception.getFieldError() != null ? exception.getFieldError().getField() : "unknown";
+            log.error("Validation failed for key: {} Field: {}", enumKey, fieldName);
         }
 
         ApiResponse apiResponse = new ApiResponse();

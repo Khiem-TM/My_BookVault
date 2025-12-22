@@ -1,7 +1,7 @@
 package com.khiem.book.service;
 
 import com.khiem.book.dto.PlaylistDto;
-import com.khiem.book.dto.PlaylistBookDto;
+
 import com.khiem.book.entity.Playlist;
 import com.khiem.book.entity.PlaylistBook;
 import com.khiem.book.mapper.PlaylistMapper;
@@ -29,7 +29,7 @@ public class PlaylistService {
      * Lấy tất cả playlists của user
      */
     @Transactional(readOnly = true)
-    public List<PlaylistDto> getUserPlaylists(Long userId) {
+    public List<PlaylistDto> getUserPlaylists(String userId) {
         log.info("Fetching playlists for user: {}", userId);
         return playlistRepository.findByUserId(userId).stream()
                 .map(playlistMapper::toDto)
@@ -40,7 +40,7 @@ public class PlaylistService {
      * Lấy chi tiết một playlist
      */
     @Transactional(readOnly = true)
-    public PlaylistDto getPlaylistDetail(Long playlistId, Long userId) {
+    public PlaylistDto getPlaylistDetail(Long playlistId, String userId) {
         log.info("Fetching playlist {} for user {}", playlistId, userId);
         return playlistRepository.findByIdAndUserId(playlistId, userId)
                 .map(playlistMapper::toDto)
@@ -51,7 +51,7 @@ public class PlaylistService {
      * Tạo playlist mới
      */
     @Transactional
-    public PlaylistDto createPlaylist(Long userId, PlaylistDto dto) {
+    public PlaylistDto createPlaylist(String userId, PlaylistDto dto) {
         log.info("Creating playlist for user: {}", userId);
         Playlist playlist = new Playlist(userId, dto.getName());
         playlist.setDescription(dto.getDescription());
@@ -67,7 +67,7 @@ public class PlaylistService {
      * Cập nhật playlist
      */
     @Transactional
-    public PlaylistDto updatePlaylist(Long playlistId, Long userId, PlaylistDto dto) {
+    public PlaylistDto updatePlaylist(Long playlistId, String userId, PlaylistDto dto) {
         log.info("Updating playlist {} for user {}", playlistId, userId);
         Playlist playlist = playlistRepository.findByIdAndUserId(playlistId, userId)
                 .orElseThrow(() -> new IllegalArgumentException("Playlist not found or unauthorized"));
@@ -84,7 +84,7 @@ public class PlaylistService {
      * Xóa playlist
      */
     @Transactional
-    public void deletePlaylist(Long playlistId, Long userId) {
+    public void deletePlaylist(Long playlistId, String userId) {
         log.info("Deleting playlist {} for user {}", playlistId, userId);
         Playlist playlist = playlistRepository.findByIdAndUserId(playlistId, userId)
                 .orElseThrow(() -> new IllegalArgumentException("Playlist not found or unauthorized"));
@@ -95,7 +95,7 @@ public class PlaylistService {
      * Thêm sách vào playlist
      */
     @Transactional
-    public PlaylistDto addBookToPlaylist(Long playlistId, Long userId, Long bookId) {
+    public PlaylistDto addBookToPlaylist(Long playlistId, String userId, Long bookId) {
         log.info("Adding book {} to playlist {} for user {}", bookId, playlistId, userId);
 
         Playlist playlist = playlistRepository.findByIdAndUserId(playlistId, userId)
@@ -122,7 +122,7 @@ public class PlaylistService {
      * Xóa sách khỏi playlist
      */
     @Transactional
-    public PlaylistDto removeBookFromPlaylist(Long playlistId, Long userId, Long bookId) {
+    public PlaylistDto removeBookFromPlaylist(Long playlistId, String userId, Long bookId) {
         log.info("Removing book {} from playlist {} for user {}", bookId, playlistId, userId);
 
         Playlist playlist = playlistRepository.findByIdAndUserId(playlistId, userId)
@@ -148,7 +148,7 @@ public class PlaylistService {
      * Sắp xếp lại vị trí sách trong playlist
      */
     @Transactional
-    public PlaylistDto reorderPlaylistBooks(Long playlistId, Long userId, List<Long> bookIds) {
+    public PlaylistDto reorderPlaylistBooks(Long playlistId, String userId, List<Long> bookIds) {
         log.info("Reordering books in playlist {} for user {}", playlistId, userId);
 
         Playlist playlist = playlistRepository.findByIdAndUserId(playlistId, userId)

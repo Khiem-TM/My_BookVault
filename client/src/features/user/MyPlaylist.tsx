@@ -10,7 +10,7 @@ import {
   Grid,
   List,
 } from "lucide-react";
-import { playlistService, bookService } from "../../services/apiServices";
+import { playlistService } from "../../services/user/PlaylistService";
 
 interface Playlist {
   id: string;
@@ -49,28 +49,7 @@ export default function MyPlaylist() {
     fetchData();
   }, []);
 
-  const mockPlaylists: Playlist[] = [
-    {
-      id: "1",
-      name: "Favorite Science Fiction",
-      description: "My favorite sci-fi books",
-      bookCount: 8,
-      createdAt: "2024-10-01",
-      updatedAt: "2024-12-05",
-      userId: "1",
-    },
-    {
-      id: "2",
-      name: "Learning Python",
-      description: "Books for mastering Python programming",
-      bookCount: 5,
-      createdAt: "2024-09-15",
-      updatedAt: "2024-12-03",
-      userId: "1",
-    },
-  ];
-
-  const displayPlaylists = playlists.length > 0 ? playlists : mockPlaylists;
+  const displayPlaylists = playlists;
 
   const filteredPlaylists = displayPlaylists.filter((playlist) => {
     if (!searchTerm) return true;
@@ -84,10 +63,7 @@ export default function MyPlaylist() {
   const handleCreatePlaylist = async () => {
     if (!newPlaylistName.trim()) return;
     try {
-      await playlistService.createPlaylist({
-        name: newPlaylistName,
-        description: newPlaylistDesc,
-      });
+      await playlistService.createPlaylist(newPlaylistName, newPlaylistDesc);
       setNewPlaylistName("");
       setNewPlaylistDesc("");
       setShowCreateModal(false);

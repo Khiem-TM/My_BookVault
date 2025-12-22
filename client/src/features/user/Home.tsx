@@ -9,11 +9,11 @@ import {
   Clock,
   Heart,
 } from "lucide-react";
-import { bookService } from "../../services/apiServices";
+import { bookSharedService } from "../../services/shared/BookSharedService";
 
 export default function Home() {
-  const [featuredBooks, setFeaturedBooks] = useState([]);
-  const [categories, setCategories] = useState([]);
+  const [featuredBooks, setFeaturedBooks] = useState<any[]>([]);
+  const [categories, setCategories] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -24,8 +24,8 @@ export default function Home() {
       try {
         setLoading(true);
         const [booksData, categoriesData] = await Promise.all([
-          bookService.getBooks(0, 6),
-          bookService.getCategories(),
+          bookSharedService.getAllBooks({ page: 0, size: 6 }),
+          bookSharedService.getBookCategories(),
         ]);
         setFeaturedBooks(booksData.content || []);
         setCategories(categoriesData || []);

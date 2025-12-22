@@ -5,20 +5,20 @@ import BooksList from "./features/user/BooksList";
 import BookDetail from "./features/user/BookDetail";
 import Orders from "./features/user/Orders";
 import MyPlaylist from "./features/user/MyPlaylist";
-import LibraryShelf from "./features/user/LibraryShelf";
+import PlaylistDetail from "./features/user/PlaylistDetail";
 import Profile from "./features/user/Profile";
 import Genres from "./features/user/Genres";
 import History from "./features/user/History";
 import AdminDashboard from "./features/admin/AdminDashboard";
-import DatabaseView from "./features/admin/DatabaseView";
 import AuthPage from "./features/auth/AuthPage";
 import TotalBooks from "./features/admin/TotalBooks";
+import AdminBookDetail from "./features/admin/AdminBookDetail";
 import TotalUsers from "./features/admin/TotalUsers";
 import TotalBorrows from "./features/admin/TotalBorrows";
 import { JSX } from "react";
 import Layout from "./shared/ui/Layout";
 import AdminLayout from "./features/admin/AdminLayout";
-import AdminProfile from "./features/admin/AdminProfile";
+import AdminCommunity from "./features/admin/AdminCommunity";
 import { useAuthStore } from "./store/authStore";
 
 /**
@@ -89,7 +89,7 @@ export default function App() {
         <Route path="books/:id" element={<BookDetail />} />
         <Route path="orders" element={<Orders />} />
         <Route path="playlists" element={<MyPlaylist />} />
-        <Route path="library" element={<LibraryShelf />} />
+        <Route path="playlists/:id" element={<PlaylistDetail />} />
         <Route path="profile" element={<Profile />} />
         <Route path="genres" element={<Genres />} />
         <Route path="history" element={<History />} />
@@ -104,11 +104,11 @@ export default function App() {
         }
       >
         <Route path="admin" element={<AdminDashboard />} />
-        <Route path="admin/database" element={<DatabaseView />} />
         <Route path="admin/total-books" element={<TotalBooks />} />
+        <Route path="admin/books/:id" element={<AdminBookDetail />} />
         <Route path="admin/total-users" element={<TotalUsers />} />
         <Route path="admin/total-borrows" element={<TotalBorrows />} />
-        <Route path="admin/profile" element={<AdminProfile />} />
+        <Route path="admin/community" element={<AdminCommunity />} />
       </Route>
 
       {/* Catch-all - redirect to home */}

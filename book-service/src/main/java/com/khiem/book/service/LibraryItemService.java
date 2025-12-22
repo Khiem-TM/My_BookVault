@@ -31,7 +31,7 @@ public class LibraryItemService {
     }
 
     @Transactional(readOnly = true)
-    public List<LibraryItemDto> byShelf(Long userId, String shelf) {
+    public List<LibraryItemDto> byShelf(String userId, String shelf) {
         return repository.findByUserIdAndShelf(userId, shelf).stream().map(mapper::toDto).collect(Collectors.toList());
     }
 

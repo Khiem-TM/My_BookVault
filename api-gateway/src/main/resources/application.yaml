@@ -20,6 +20,7 @@ spring:
             allowedOrigins:
               - "http://localhost:4173"
               - "http://localhost:3000"
+              - "http://localhost:5173"
               - "${FRONTEND_URL:http://localhost:3000}"
             allowedMethods:
               - GET
@@ -84,7 +85,7 @@ spring:
           uri: http://book-service:8086
           predicates:
             - Path=${app.api-prefix}/books
-            - Method=POST,PUT,DELETE
+            - Method=GET,POST,PUT,DELETE
           filters:
             - StripPrefix=2
             - name: RequestRateLimiter
@@ -127,26 +128,47 @@ spring:
                 redis-rate-limiter.replenishRate: 150
                 redis-rate-limiter.burstCapacity: 300
                 key-resolver: "#{@ipKeyResolver}"
-        # Legacy Book Service endpoints (backward compatibility)
-        - id: book_service_legacy
+        # Legacy Book Service endpoints (split for clarity)
+        - id: library_service_route
           uri: http://book-service:8086
           predicates:
-            - Path=${app.api-prefix}/library/**, ${app.api-prefix}/order/**, ${app.api-prefix}/review/**, ${app.api-prefix}/transaction/**
+            - Path=${app.api-prefix}/library/**
           filters:
             - StripPrefix=2
             - RewritePath=/library/(?<segment>.*), /library/${segment}
-            - RewritePath=/order/(?<segment>.*), /orders/${segment}
-            - RewritePath=/review/(?<segment>.*), /reviews/${segment}
-            - RewritePath=/transaction/(?<segment>.*), /transactions/${segment}
             - name: RequestRateLimiter
               args:
-                redis-rate-limiter.replenishRate: 200
-                redis-rate-limiter.burstCapacity: 400
+                redis-rate-limiter.replenishRate: 50
+                redis-rate-limiter.burstCapacity: 100
                 key-resolver: "#{@ipKeyResolver}"
-            - name: Retry
+        
+        - id: order_service_route
+          uri: http://book-service:8086
+          predicates:
+            - Path=${app.api-prefix}/orders/**
+          filters:
+            - StripPrefix=2
+            - name: RequestRateLimiter
               args:
-                retries: 2
-                statuses: BAD_GATEWAY, SERVICE_UNAVAILABLE, GATEWAY_TIMEOUT
+                redis-rate-limiter.replenishRate: 50
+                redis-rate-limiter.burstCapacity: 100
+                key-resolver: "#{@ipKeyResolver}"
+
+        - id: review_service_route
+          uri: http://book-service:8086
+          predicates:
+            - Path=${app.api-prefix}/review/**
+          filters:
+            - StripPrefix=2
+            - RewritePath=/review/(?<segment>.*), /${segment}
+        
+        - id: transaction_service_route
+          uri: http://book-service:8086
+          predicates:
+            - Path=${app.api-prefix}/transaction/**
+          filters:
+            - StripPrefix=2
+            - RewritePath=/transaction/(?<segment>.*), /${segment}
         - id: payment_service
           uri: http://payment-service:8092
           predicates:

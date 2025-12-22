@@ -13,7 +13,7 @@ import jakarta.validation.constraints.NotBlank;
 public class LibraryItemDto {
     private Long id;
     @NotNull
-    private Long userId;
+    private String userId;
     @NotNull
     private Long bookId;
     @NotBlank
@@ -22,8 +22,8 @@ public class LibraryItemDto {
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
-    public Long getUserId() { return userId; }
-    public void setUserId(Long userId) { this.userId = userId; }
+    public String getUserId() { return userId; }
+    public void setUserId(String userId) { this.userId = userId; }
     public Long getBookId() { return bookId; }
     public void setBookId(Long bookId) { this.bookId = bookId; }
     public String getShelf() { return shelf; }

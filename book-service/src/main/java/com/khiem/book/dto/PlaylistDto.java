@@ -19,7 +19,7 @@ public class PlaylistDto {
     private String name;
 
     private String description;
-    private Long userId;
+    private String userId;
     private Instant createdAt;
     private Instant updatedAt;
     private List<PlaylistBookDto> books;
