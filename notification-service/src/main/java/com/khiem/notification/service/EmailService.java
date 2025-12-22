@@ -29,11 +29,12 @@ public class EmailService {
     @NonFinal
     String apiKey;
 
+    // hard Code
     public EmailResponse sendEmail(SendEmailRequest request) {
         EmailRequest emailRequest = EmailRequest.builder()
                 .sender(Sender.builder()
-                        .name("Devteria DotCom")
-                        .email("devteriadotcom@gmail.com")
+                        .name("BookVault")
+                        .email("khiemlistss@gmail.com")
                         .build())
                 .to(List.of(request.getTo()))
                 .subject(request.getSubject())
@@ -42,6 +43,7 @@ public class EmailService {
         try {
             return emailClient.sendEmail(apiKey, emailRequest);
         } catch (FeignException e) {
+            e.printStackTrace();
             throw new AppException(ErrorCode.CANNOT_SEND_EMAIL);
         }
     }
