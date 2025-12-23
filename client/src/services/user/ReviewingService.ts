@@ -16,16 +16,24 @@ export const reviewService = {
    */
   getReviews: async (bookId: number | string): Promise<Review[]> => {
     const response = await api.get<ApiResponse<Review[]>>(
-      `/review/book/${bookId}`
+      `/book/books/${bookId}/reviews`
     );
-    return response.data.result || [];
+    // Backend returns { reviews: [], total: ... } or just []?
+    // Controller says: res.json(successResponse(result)); where result is from service.getReviewsByBook
+    // Service returns { reviews, total }.
+    // So response.data.result.reviews is the array.
+    const result: any = response.data.result;
+    if (result && Array.isArray(result.reviews)) {
+        return result.reviews;
+    }
+    return []; 
   },
 
   /**
    * Add a review
    */
   addReview: async (bookId: number | string, data: any): Promise<any> => {
-    const response = await api.post<ApiResponse<any>>(`/review`, {
+    const response = await api.post<ApiResponse<any>>(`/book/books/${bookId}/reviews`, {
       ...data,
       bookId,
     });

@@ -28,7 +28,7 @@ export class PlaylistController {
 
     async createPlaylist(req: Request, res: Response) {
         try {
-            const userId = (req as any).user?.id || "system";
+            const userId = (req as any).user?.sub || (req as any).user?.id || "system";
             const validatedData = createPlaylistSchema.parse(req.body);
 
             const playlist = await playlistService.createPlaylist(
@@ -49,7 +49,7 @@ export class PlaylistController {
 
     async addBook(req: Request, res: Response) {
         try {
-            const userId = (req as any).user?.id || "system";
+            const userId = (req as any).user?.sub || (req as any).user?.id || "system";
             const playlistId = parseInt(req.params.id);
             
             // Try to get bookId from params first (client style), then body
@@ -82,7 +82,7 @@ export class PlaylistController {
 
     async removeBook(req: Request, res: Response) {
         try {
-            const userId = (req as any).user?.id || "system";
+            const userId = (req as any).user?.sub || (req as any).user?.id || "system";
             const playlistId = parseInt(req.params.id);
             const bookId = parseInt(req.params.bookId);
 
@@ -104,7 +104,7 @@ export class PlaylistController {
 
     async getMyPlaylists(req: Request, res: Response) {
         try {
-            const userId = (req as any).user?.id || "system";
+            const userId = (req as any).user?.sub || (req as any).user?.id || "system";
             const playlists = await playlistService.getMyPlaylists(userId);
             res.json(successResponse(playlists));
         } catch (error) {
@@ -132,7 +132,7 @@ export class PlaylistController {
 
     async getMyBooks(req: Request, res: Response) {
          try {
-            const userId = (req as any).user?.id || "system";
+            const userId = (req as any).user?.sub || (req as any).user?.id || "system";
             // Get books from transactions (borrowed)
             // Ideally we also want purchased books if we had order service connected. 
             // For now, rely on active transactions or all transactions history? 

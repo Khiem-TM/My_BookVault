@@ -81,8 +81,9 @@ spring:
         # Structure: Frontend calls /api/v1/books/* -> Gateway -> bookx-service:3001/api/books/*
 
         # Book Management (Admin Only) - Create, Update, Delete
+        # Book Management (Admin Only) - Create, Update, Delete
         - id: book_service_management
-          uri: http://localhost:3001
+          uri: http://bookx-service:3001
           predicates:
             - Path=${app.api-prefix}/books
             - Method=GET,POST,PUT,DELETE
@@ -96,7 +97,7 @@ spring:
 
         # Book Query Operations - Read, Search, Statistics
         - id: book_service_query
-          uri: http://localhost:3001
+          uri: http://bookx-service:3001
           predicates:
             - Path=${app.api-prefix}/book/books/**
           filters:
@@ -107,7 +108,7 @@ spring:
                 redis-rate-limiter.burstCapacity: 400
                 key-resolver: "#{@ipKeyResolver}"
         - id: book_service_borrow
-          uri: http://localhost:3001
+          uri: http://bookx-service:3001
           predicates:
             - Path=${app.api-prefix}/book/borrows/**
           filters:
@@ -118,7 +119,7 @@ spring:
                 redis-rate-limiter.burstCapacity: 300
                 key-resolver: "#{@ipKeyResolver}"
         - id: book_service_rental
-          uri: http://localhost:3001
+          uri: http://bookx-service:3001
           predicates:
             - Path=${app.api-prefix}/book/rentals/**
           filters:
@@ -130,7 +131,7 @@ spring:
                 key-resolver: "#{@ipKeyResolver}"
         # Legacy Book Service endpoints (split for clarity)
         - id: library_service_route
-          uri: http://localhost:3001
+          uri: http://bookx-service:3001
           predicates:
             - Path=${app.api-prefix}/library/**
           filters:
@@ -142,7 +143,7 @@ spring:
                 key-resolver: "#{@ipKeyResolver}"
         
         - id: order_service_route
-          uri: http://localhost:3001
+          uri: http://bookx-service:3001
           predicates:
             - Path=${app.api-prefix}/orders/**
           filters:
@@ -154,14 +155,14 @@ spring:
                 key-resolver: "#{@ipKeyResolver}"
 
         - id: review_service_route
-          uri: http://localhost:3001
+          uri: http://bookx-service:3001
           predicates:
             - Path=${app.api-prefix}/review/**
           filters:
             - RewritePath=/api/v1/review/(?<segment>.*), /api/reviews/${segment}
         
         - id: transaction_service_route
-          uri: http://localhost:3001
+          uri: http://bookx-service:3001
           predicates:
             - Path=${app.api-prefix}/transaction/**
           filters:

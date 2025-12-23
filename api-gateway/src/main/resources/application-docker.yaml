@@ -186,11 +186,12 @@ spring:
                 statuses: BAD_GATEWAY, SERVICE_UNAVAILABLE, GATEWAY_TIMEOUT
 
         - id: order_service
-          uri: http://book-service:8086
+          uri: http://bookx-service:3001
           predicates:
             - Path=${app.api-prefix}/orders/**
           filters:
             - StripPrefix=2
+            - RewritePath=/orders(?<segment>.*), /api/orders${segment}
             - name: RequestRateLimiter
               args:
                 "[redis-rate-limiter.replenishRate]": 50

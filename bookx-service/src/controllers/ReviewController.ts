@@ -16,7 +16,7 @@ export class ReviewController {
     async addReview(req: Request, res: Response) {
         try {
             const bookId = parseInt(req.params.bookId);
-            const userId = (req as any).user?.id || "system";
+            const userId = (req as any).user?.sub || (req as any).user?.id || "system";
             const validatedData = addReviewSchema.parse(req.body);
 
             const review = await reviewService.addReview(
@@ -58,7 +58,7 @@ export class ReviewController {
     async deleteReview(req: Request, res: Response) {
         try {
             const reviewId = parseInt(req.params.id);
-            const userId = (req as any).user?.id || "system";
+            const userId = (req as any).user?.sub || (req as any).user?.id || "system";
 
             const success = await reviewService.deleteReview(reviewId, userId);
             if (!success) {

@@ -48,9 +48,9 @@ export default function BookDetail() {
         // Map reviews to UI format
         const mappedReviews = (reviewsData || []).map((r: any) => ({
             id: r.id,
-            user: "User #" + r.userId, // We only have userId in ReviewDto
+            user: r.userName || "User #" + r.userId,
             rating: r.rating,
-            comment: r.content,
+            comment: r.comment || r.content, // Fallback just in case
             date: r.createdAt ? new Date(r.createdAt).toLocaleDateString() : 'Recently',
             verified: true
         }));
@@ -122,18 +122,35 @@ export default function BookDetail() {
     );
   }
 
-  const handleAddReview = () => {
+  const handleAddReview = async () => {
+    if (!user) {
+        alert("Please login to post a review.");
+        return;
+    }
+
     if (userReview.comment.trim()) {
-      const newReview = {
-        id: Date.now(),
-        user: user?.firstName + " " + user?.lastName || "You",
-        rating: userReview.rating,
-        comment: userReview.comment,
-        date: new Date().toISOString().split("T")[0],
-        verified: true,
-      };
-      setReviews([newReview, ...reviews]);
-      setUserReview({ rating: 5, comment: "" });
+      try {
+          const payload = {
+              rating: userReview.rating,
+              comment: userReview.comment,
+              userName: `${user.firstName} ${user.lastName}`
+          };
+          const savedReview = await reviewService.addReview(id!, payload);
+          
+          const newReview = {
+            id: savedReview.id || Date.now(),
+            user: savedReview.userName || `${user.firstName} ${user.lastName}`,
+            rating: savedReview.rating,
+            comment: savedReview.comment,
+            date: new Date().toLocaleDateString(),
+            verified: true,
+          };
+          setReviews([newReview, ...reviews]);
+          setUserReview({ rating: 5, comment: "" });
+      } catch (error: any) {
+          console.error("Failed to add review:", error);
+          alert(error.response?.data?.message || "Failed to post review. You may have already reviewed this book.");
+      }
     }
   };
 
