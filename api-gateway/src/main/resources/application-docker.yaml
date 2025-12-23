@@ -79,7 +79,23 @@ spring:
         - id: book_service_query
           uri: http://bookx-service:3001
           predicates:
-            - Path=${app.api-prefix}/books/**
+            - Path=${app.api-prefix}/book/books/**
+          filters:
+            - RewritePath=/api/v1/book/(?<segment>.*), /api/${segment}
+            - name: RequestRateLimiter
+              args:
+                "[redis-rate-limiter.replenishRate]": 200
+                "[redis-rate-limiter.burstCapacity]": 400
+                key-resolver: "#{@ipKeyResolver}"
+            - name: Retry
+              args:
+                retries: 2
+                statuses: BAD_GATEWAY, SERVICE_UNAVAILABLE, GATEWAY_TIMEOUT
+
+        - id: book_service_list
+          uri: http://bookx-service:3001
+          predicates:
+            - Path=${app.api-prefix}/books, ${app.api-prefix}/books/**
             - Method=GET
           filters:
             - StripPrefix=2
