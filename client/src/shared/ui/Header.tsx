@@ -149,7 +149,7 @@ export default function Header() {
           <div className="flex items-center gap-4 pl-4 border-l border-gray-200">
              {/* Shopping Cart (Orders) */}
              <NavLink
-               to="/profile/orders"
+               to="/orders"
                className="relative p-2 text-gray-600 hover:text-blue-600 transition-colors"
                title="My Orders"
              >

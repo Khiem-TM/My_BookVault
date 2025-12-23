@@ -11,11 +11,11 @@ import java.util.Map;
 import java.util.function.Function;
 
 @Component
-public class DateTimeFormatter {
+public class RelativeDateTimeFormatter {
 
     Map<Long, Function<Instant, String>> strategyMap = new LinkedHashMap<>();
 
-    public DateTimeFormatter() {
+    public RelativeDateTimeFormatter() {
         strategyMap.put(60L, this::formatInSeconds);
         strategyMap.put(3600L, this::formatInMinutes);
         strategyMap.put(86400L, this::formatInHours);

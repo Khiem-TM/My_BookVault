@@ -32,7 +32,9 @@ logging:
 app:
   services:
     profile:
-      url: "http://${PROFILE_SERVICE_HOST:profile-service}:8081/profile"
+      url: "http://${PROFILE_SERVICE_HOST:profile-service}:${PROFILE_SERVICE_PORT:8081}/profile"
+    file:
+      url: "http://${FILE_SERVICE_HOST:file-service}:${FILE_SERVICE_PORT:8084}/file"
 
 management:
   endpoints:

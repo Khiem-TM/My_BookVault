@@ -11,6 +11,7 @@ import {
   List,
 } from "lucide-react";
 import { playlistService } from "../../services/user/PlaylistService";
+import { orderService } from "../../services/user/OrderService";
 
 interface Playlist {
   id: string;
@@ -29,6 +30,7 @@ export default function MyPlaylist() {
   const [newPlaylistName, setNewPlaylistName] = useState("");
   const [newPlaylistDesc, setNewPlaylistDesc] = useState("");
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
+  const [rentedBooks, setRentedBooks] = useState<any[]>([]); // Using any[] for now as Book interface might vary
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -36,11 +38,32 @@ export default function MyPlaylist() {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const playlistsData = await playlistService.getUserPlaylists();
+        // Parallel fetch for playlists and rented books
+        const [playlistsData, ordersData] = await Promise.all([
+             playlistService.getUserPlaylists(),
+             orderService.getMyOrders()
+        ]);
+        
         setPlaylists(playlistsData || []);
+
+        // Flatten orders to get books from COMPLETED orders
+        const booksMap = new Map();
+        if (ordersData) {
+            ordersData.forEach(order => {
+                if (order.status === "COMPLETED" && order.items) {
+                    order.items.forEach(item => {
+                        if (item.book) {
+                           booksMap.set(item.book.id, item.book);
+                        }
+                    });
+                }
+            });
+        }
+        setRentedBooks(Array.from(booksMap.values()));
+
       } catch (err) {
-        console.error("Error fetching playlists:", err);
-        setError("Failed to load playlists");
+        console.error("Error fetching data:", err);
+        setError("Failed to load playlist data");
       } finally {
         setLoading(false);
       }
@@ -50,7 +73,6 @@ export default function MyPlaylist() {
   }, []);
 
   const displayPlaylists = playlists;
-
   const filteredPlaylists = displayPlaylists.filter((playlist) => {
     if (!searchTerm) return true;
     return (
@@ -218,19 +240,41 @@ export default function MyPlaylist() {
               <BookOpen className="h-5 w-5 text-blue-600" />
               Sách đã thuê (Rented Books)
            </h2>
-           {/* We can fetch rented books here or reuse a list if we had one. 
-               For now, we'll assume we need to fetch them or they are part of 'playlists' logic improvement later. 
-               The user asked to split the view. 
-               Since we don't have a direct 'rented books' state yet in this component, 
-               I will add it in the next step or assume we simply show a placeholder if empty 
-               but the user asked for functional separation. 
-               Actually, let's fetch myBooks in useEffect too.
-            */}
-           {/* Placeholder for Rented Books Grid - to be populated by state */}
-           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8 text-center">
-              <p className="text-gray-500">You haven't rented any books yet.</p>
-              <Link to="/books" className="text-blue-600 font-medium hover:underline mt-2 inline-block">Browse Books</Link>
-           </div>
+           
+           {rentedBooks.length > 0 ? (
+             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                {rentedBooks.map((book) => (
+                  <div key={book.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-all group">
+                    <div className="aspect-[3/4] bg-gray-100 relative overflow-hidden">
+                       {book.thumbnailUrl ? (
+                         <img src={book.thumbnailUrl} alt={book.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                       ) : (
+                         <div className="w-full h-full flex items-center justify-center text-gray-400">
+                           <BookOpen className="h-12 w-12" />
+                         </div>
+                       )}
+                       
+                       {/* Overlay Actions */}
+                       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                          <Link to={`/books/${book.id}`} className="p-2 bg-white rounded-full text-gray-900 hover:text-blue-600 transition-colors" title="View Details">
+                             <BookOpen className="h-4 w-4" />
+                          </Link>
+                          {/* Future: Add to Playlist Button here */}
+                       </div>
+                    </div>
+                    <div className="p-4">
+                       <h3 className="font-semibold text-gray-900 line-clamp-1" title={book.title}>{book.title}</h3>
+                       <p className="text-sm text-gray-500 line-clamp-1">{book.author}</p>
+                    </div>
+                  </div>
+                ))}
+             </div>
+           ) : (
+             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8 text-center">
+                <p className="text-gray-500">You haven't rented any books yet.</p>
+                <Link to="/books" className="text-blue-600 font-medium hover:underline mt-2 inline-block">Browse Books</Link>
+             </div>
+           )}
         </div>
 
         {/* Playlists Section */}

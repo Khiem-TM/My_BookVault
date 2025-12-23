@@ -117,6 +117,7 @@ services:
         MONGO_URI: mongodb://mongodb:27017/bookx_db
         REDIS_URL: redis://redis:6379
         JWT_SECRET: "1TjXchw5FloESb63Kc+DFhTARvpWL4jUGCwfGWxuG5SIf/1y/LgJxHnMqaF6A/ij"
+        IDENTITY_SERVICE_URL: "http://identity-service:8080/identity"
     depends_on:
         mysql:
             condition: service_started
