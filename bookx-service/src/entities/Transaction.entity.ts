@@ -2,10 +2,12 @@ import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, Jo
 import { Book } from "./Book.entity";
 
 export enum TransactionStatus {
+    PENDING = "PENDING",
     ACTIVE = "ACTIVE",
     OVERDUE = "OVERDUE",
     RETURNED = "RETURNED",
-    RETURNED_OVERDUE = "RETURNED_OVERDUE"
+    RETURNED_OVERDUE = "RETURNED_OVERDUE",
+    REJECTED = "REJECTED"
 }
 
 @Entity("transactions")

@@ -166,7 +166,7 @@ spring:
           predicates:
             - Path=${app.api-prefix}/transaction/**
           filters:
-            - RewritePath=/api/v1/transaction/(?<segment>.*), /api/transactions/${segment}
+            - RewritePath=/api/v1/transaction(?<segment>/?.*), /api/transactions${segment}
         - id: payment_service
           uri: http://payment-service:8092
           predicates:

@@ -24,6 +24,8 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
+import { useQuery } from "@tanstack/react-query";
+import { adminStatisticsService } from "../../services/admin/AdminStatisticsService";
 
 // Mock Data for Charts
 const BORROW_ACTIVITY_DATA = [
@@ -52,39 +54,44 @@ const FREE_VS_PAID_DATA = [
 const PIE_COLORS = ["#10B981", "#3B82F6"]; // Green, Blue
 
 export default function AdminDashboard() {
+  const { data: stats, isLoading } = useQuery({
+    queryKey: ["admin-stats"],
+    queryFn: adminStatisticsService.getDashboardStats,
+  });
+
   const kpiCards = [
     {
       title: "Total Users",
-      value: "1,240",
-      change: "+12%",
+      value: isLoading ? "..." : stats?.totalUsers.toString() || "0",
+      change: "+0%", // TODO: Calculate change from historical data if available
       icon: Users,
       color: "bg-blue-500",
     },
     {
       title: "Total Books",
-      value: "8,340",
-      change: "+4%",
+      value: isLoading ? "..." : stats?.totalBooks.toString() || "0",
+      change: "+0%",
       icon: BookOpen,
       color: "bg-purple-500",
     },
     {
-      title: "Reports",
-      value: "145",
-      change: "-2%",
+      title: "Total Borrows",
+      value: isLoading ? "..." : stats?.totalBorrows.toString() || "0",
+      change: "+0%",
       icon: FileText,
       color: "bg-orange-500",
     },
     {
       title: "Active Borrows",
-      value: "342",
-      change: "+24%",
+      value: isLoading ? "..." : stats?.activeBorrows.toString() || "0",
+      change: "+0%",
       icon: Activity,
       color: "bg-green-500",
     },
     {
-      title: "Paid Orders",
-      value: "$12,450",
-      change: "+8%",
+      title: "Paid/Revenue",
+      value: isLoading ? "..." : `$${stats?.revenue || 0}`,
+      change: "+0%",
       icon: DollarSign,
       color: "bg-indigo-500",
     },
@@ -94,7 +101,7 @@ export default function AdminDashboard() {
     <section className="max-w-7xl mx-auto px-4 py-8 space-y-8">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-        <p className="text-gray-500 text-sm">Last updated: Just now</p>
+        <p className="text-gray-500 text-sm">Real-time statistics</p>
       </div>
 
       {/* KPI Cards Grid */}
@@ -110,15 +117,6 @@ export default function AdminDashboard() {
               >
                 <card.icon className={`h-6 w-6 ${card.color.replace("bg-", "text-")}`} />
               </div>
-              <span
-                className={`text-xs font-medium px-2 py-1 rounded-full ${
-                  card.change.startsWith("+")
-                    ? "bg-green-100 text-green-700"
-                    : "bg-red-100 text-red-700"
-                }`}
-              >
-                {card.change}
-              </span>
             </div>
             <div>
               <h3 className="text-gray-500 text-sm font-medium">{card.title}</h3>

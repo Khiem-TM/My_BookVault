@@ -23,17 +23,16 @@ export class TransactionService {
             throw new Error("Book is not available for borrowing");
         }
 
-        // Check if user already has an active borrow for this book (optional, but good practice)
+        // Check if user already has an active or pending borrow for this book
         const activeTransaction = await this.transactionRepository.findOne({
-            where: {
-                userId,
-                bookId,
-                status: TransactionStatus.ACTIVE
-            }
+            where: [
+                { userId, bookId, status: TransactionStatus.ACTIVE },
+                { userId, bookId, status: TransactionStatus.PENDING }
+            ]
         });
 
         if (activeTransaction) {
-            throw new Error("User already has this book borrowed");
+            throw new Error("User already has this book borrowed or pending approval");
         }
 
         // Create transaction
@@ -45,7 +44,7 @@ export class TransactionService {
             bookId,
             borrowDate: new Date(),
             dueDate,
-            status: TransactionStatus.ACTIVE
+            status: TransactionStatus.PENDING
         });
 
         // Update book inventory
@@ -110,6 +109,65 @@ export class TransactionService {
             where: { userId },
             relations: ["book"],
             order: { createdAt: "DESC" }
+        });
+    }
+
+    async getAllTransactions(): Promise<Transaction[]> {
+        return await this.transactionRepository.find({
+            relations: ["book"],
+            order: { createdAt: "DESC" }
+        });
+    }
+
+    async approveTransaction(id: number): Promise<Transaction> {
+        const transaction = await this.transactionRepository.findOne({ where: { id } });
+        if (!transaction) throw new Error("Transaction not found");
+        
+        if (transaction.status !== TransactionStatus.PENDING) {
+            throw new Error("Transaction is not pending");
+        }
+
+        transaction.status = TransactionStatus.ACTIVE;
+        return await this.transactionRepository.save(transaction);
+    }
+
+    async rejectTransaction(id: number): Promise<void> {
+        const transaction = await this.transactionRepository.findOne({ where: { id }, relations: ["book"] });
+        if (!transaction) throw new Error("Transaction not found");
+
+        // If pending, we can reject (and restore stock)
+        // If active, we might not want to reject easily, but let's allow it for admin power (treat as cancel)
+        
+        const book = transaction.book;
+        
+        // Restore stock
+        if (book) {
+            book.availableQuantity += 1;
+            if (book.status === BookStatus.OUT_OF_STOCK) {
+                book.status = BookStatus.AVAILABLE;
+            }
+        }
+
+        transaction.status = TransactionStatus.REJECTED;
+
+        await AppDataSource.manager.transaction(async (transactionalEntityManager) => {
+            if (book) {
+                await transactionalEntityManager.save(book);
+            }
+            // await transactionalEntityManager.save(transaction); // Save as REJECTED
+            // Or delete? The prompt implies "View... and approve". If rejected, maybe we keep it or delete it.
+            // Frontend 'reject' uses DELETE method, implying removal. 
+            // Let's delete it for now to keep it simple and clean for "requests".
+             await transactionalEntityManager.remove(transaction);
+        });
+    }
+    async countTransactions(): Promise<number> {
+        return await this.transactionRepository.count();
+    }
+
+    async countActiveBorrows(): Promise<number> {
+        return await this.transactionRepository.count({
+            where: { status: TransactionStatus.ACTIVE }
         });
     }
 }

@@ -31,6 +31,8 @@ const bookSchema = z.object({
   language: z.string().optional().default("en"),
   category: z.string().optional().default(""),
   coverUrl: z.string().optional().default(""),
+  rentalPrice: z.coerce.number().min(0).optional().default(0),
+  price: z.coerce.number().min(0).optional().default(0),
 });
 
 type BookFormData = z.infer<typeof bookSchema>;
@@ -398,6 +400,8 @@ function BookForm({
           language: book.language || "en",
           category: (book as any).category || book.categories?.[0] || "",
           coverUrl: (book as any).coverUrl || book.thumbnailUrl || "",
+          rentalPrice: (book as any).rentalPrice || 0,
+          price: (book as any).price || 0,
         }
       : {
           title: "",
@@ -410,6 +414,8 @@ function BookForm({
           language: "en",
           category: "",
           coverUrl: "",
+          rentalPrice: 0,
+          price: 0,
         },
   });
 
@@ -518,6 +524,32 @@ function BookForm({
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             placeholder="Book category"
           />
+        </div>
+
+        <div>
+           <label className="block text-sm font-medium mb-2 text-gray-700">
+             Rental Price
+           </label>
+           <input
+             type="number"
+             step="0.01"
+             {...register("rentalPrice")}
+             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+             placeholder="0.00"
+           />
+        </div>
+        
+        <div>
+           <label className="block text-sm font-medium mb-2 text-gray-700">
+             Sale Price
+           </label>
+           <input
+             type="number"
+             step="0.01"
+             {...register("price")}
+             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+             placeholder="0.00"
+           />
         </div>
       </div>
 

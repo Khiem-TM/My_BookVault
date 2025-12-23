@@ -187,10 +187,10 @@ spring:
         - id: transaction_service
           uri: http://bookx-service:3001
           predicates:
-            - Path=${app.api-prefix}/transactions/**
+            - Path=${app.api-prefix}/transaction/**
           filters:
             - StripPrefix=2
-            - RewritePath=/transactions/(?<segment>.*), /api/transactions/${segment}
+            - RewritePath=/transaction(?<segment>/?.*), /api/transactions${segment}
             - name: RequestRateLimiter
               args:
                 "[redis-rate-limiter.replenishRate]": 50
@@ -229,6 +229,23 @@ spring:
               args:
                 "[redis-rate-limiter.replenishRate]": 30
                 "[redis-rate-limiter.burstCapacity]": 60
+                key-resolver: "#{@ipKeyResolver}"
+            - name: Retry
+              args:
+                retries: 2
+                statuses: BAD_GATEWAY, SERVICE_UNAVAILABLE, GATEWAY_TIMEOUT
+
+        - id: statistics_service
+          uri: http://bookx-service:3001
+          predicates:
+            - Path=${app.api-prefix}/statistics/**
+          filters:
+            - StripPrefix=2
+            - RewritePath=/statistics(?<segment>/?.*), /api/statistics${segment}
+            - name: RequestRateLimiter
+              args:
+                "[redis-rate-limiter.replenishRate]": 50
+                "[redis-rate-limiter.burstCapacity]": 100
                 key-resolver: "#{@ipKeyResolver}"
             - name: Retry
               args:

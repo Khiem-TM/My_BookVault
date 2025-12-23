@@ -11,6 +11,7 @@ import reviewRoutes from "./routes/ReviewRoutes";
 import transactionRoutes from "./routes/TransactionRoutes";
 import playlistRoutes from "./routes/PlaylistRoutes";
 import orderRoutes from "./routes/OrderRoutes";
+import statisticsRoutes from "./routes/StatisticsRoutes";
 
 dotenv.config();
 
@@ -29,6 +30,7 @@ app.use("/api", reviewRoutes);
 app.use("/api/transactions", transactionRoutes);
 app.use("/api/playlists", playlistRoutes);
 app.use("/api/orders", orderRoutes);
+app.use("/api/statistics", statisticsRoutes);
 
 // Health check
 app.get("/health", (req, res) => {

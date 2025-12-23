@@ -14,7 +14,9 @@ const createBookSchema = z.object({
     description: z.string().optional(),
     totalQuantity: z.number().int().nonnegative().optional(),
     availableQuantity: z.number().int().nonnegative().optional(),
-    price: z.number().nonnegative().optional()
+    price: z.number().nonnegative().optional(),
+    rentalPrice: z.number().nonnegative().optional(),
+    rentalDurationDays: z.number().int().positive().optional()
 });
 
 const updateBookSchema = createBookSchema.partial();

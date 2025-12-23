@@ -61,4 +61,43 @@ export class TransactionController {
             res.status(500).json(errorResponse("Internal Server Error"));
         }
     }
+
+    async getAllTransactions(req: Request, res: Response) {
+        try {
+            const transactions = await transactionService.getAllTransactions();
+            res.json(successResponse(transactions));
+        } catch (error) {
+            res.status(500).json(errorResponse("Internal Server Error"));
+        }
+    }
+
+    async approveTransaction(req: Request, res: Response) {
+        try {
+            const id = parseInt(req.params.id);
+            const transaction = await transactionService.approveTransaction(id);
+            res.json(successResponse(transaction));
+        } catch (error: any) {
+            if (error.message === "Transaction not found") {
+                res.status(404).json(errorResponse(error.message, 404));
+            } else if (error.message === "Transaction is not pending") {
+                res.status(400).json(errorResponse(error.message, 400));
+            } else {
+                res.status(500).json(errorResponse("Internal Server Error"));
+            }
+        }
+    }
+
+    async rejectTransaction(req: Request, res: Response) {
+        try {
+            const id = parseInt(req.params.id);
+            await transactionService.rejectTransaction(id);
+            res.status(204).send();
+        } catch (error: any) {
+            if (error.message === "Transaction not found") {
+                res.status(404).json(errorResponse(error.message, 404));
+            } else {
+                res.status(500).json(errorResponse("Internal Server Error"));
+            }
+        }
+    }
 }

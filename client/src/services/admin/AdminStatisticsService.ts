@@ -11,27 +11,22 @@ export interface BookStatistics {
   [key: string]: any;
 }
 
+export interface DashboardStats {
+  totalBooks: number;
+  totalUsers: number;
+  totalBorrows: number;
+  activeBorrows: number;
+  revenue: number;
+}
+
 export const adminStatisticsService = {
   /**
-   * Get general book statistics
+   * Get dashboard summary statistics
    */
-  getBookStatistics: async (): Promise<BookStatistics> => {
-    const response = await api.get<ApiResponse<BookStatistics>>(
-      "/books/statistics"
+  getDashboardStats: async (): Promise<DashboardStats> => {
+    const response = await api.get<ApiResponse<DashboardStats>>(
+      "/statistics/summary"
     );
     return response.data.result!;
   },
-  
-  /**
-   * Get library statistics (Admin or User? Usually stats are admin)
-   * The original code had /library/stats which seemed to be user specific but let's check
-   * original libraryService.getLibraryStats calls /library/stats
-   * original adminBookService.getStatistics calls /book/books/statistics
-   */
-  
-  /**
-   * Get total system stats (users, books, borrows)
-   * This might need specific endpoints if they exist, or aggregation.
-   * Assuming the existing book statistics covers some of this.
-   */
 };

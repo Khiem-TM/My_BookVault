@@ -64,6 +64,11 @@ function ProtectedRoute({
   }
 
   if (role && userRole !== role) {
+    // Correct logic: If Admin tries to access User route, redirect to Admin Dashboard
+    if (userRole === "ADMIN" && role === "USER") {
+        return <Navigate to="/admin" replace />;
+    }
+
     console.warn(
       `⚠️ Insufficient permissions. Required: ${role}, Have: ${userRole}`
     );
@@ -100,7 +105,7 @@ export default function App() {
       {/* User Routes - Protected */}
       <Route
         element={
-          <ProtectedRoute>
+          <ProtectedRoute role="USER">
             <Layout />
           </ProtectedRoute>
         }
@@ -126,6 +131,7 @@ export default function App() {
         }
       >
         <Route path="admin" element={<AdminDashboard />} />
+        <Route path="admin/orders" element={<AdminOrders />} />
         <Route path="admin/total-books" element={<TotalBooks />} />
         <Route path="admin/books/:id" element={<AdminBookDetail />} />
         <Route path="admin/total-users" element={<TotalUsers />} />
@@ -133,7 +139,7 @@ export default function App() {
         <Route path="admin/community" element={<AdminCommunity />} />
       </Route>
 
-      {/* Catch-all - redirect to home */}
+      {/* Catch-all - redirect based on role? Or just to home (which will redirect) */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

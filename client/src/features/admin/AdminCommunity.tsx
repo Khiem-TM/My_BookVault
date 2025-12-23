@@ -7,7 +7,8 @@ import {
   AlertCircle,
   X,
   Send,
-  Image as ImageIcon
+  Image as ImageIcon,
+  ThumbsUp
 } from "lucide-react";
 import { postService, PostResponse } from "../../services/user/PostService";
 import { Pagination } from "@mui/material";
@@ -72,12 +73,6 @@ export default function AdminCommunity() {
     }
   };
 
-  const getRandomImage = (id: string) => {
-    const sum = id.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    const imgId = sum % 50; 
-    return `https://picsum.photos/id/${imgId}/600/400`;
-  };
-
   return (
     <div className="min-h-screen bg-gray-50 pt-6 px-4 pb-20">
       <div className="max-w-4xl mx-auto">
@@ -123,13 +118,15 @@ export default function AdminCommunity() {
             >
               <div className="flex">
                   {/* Image Preview (Small) */}
-                  <div className="w-48 bg-gray-100 relative hidden md:block">
-                     <img
-                        src={getRandomImage(post.id)}
-                        alt="Post attachment"
-                        className="w-full h-full object-cover absolute inset-0"
-                      />
-                  </div>
+                  {post.images && post.images.length > 0 && (
+                    <div className="w-48 bg-gray-100 relative hidden md:block">
+                       <img
+                          src={post.images[0]}
+                          alt="Post attachment"
+                          className="w-full h-full object-cover absolute inset-0"
+                        />
+                    </div>
+                  )}
 
                   <div className="flex-1 p-6">
                     {/* Post Header */}
@@ -173,6 +170,16 @@ export default function AdminCommunity() {
                         <p className="text-gray-800 whitespace-pre-line leading-relaxed line-clamp-3">
                         {post.content}
                         </p>
+                    </div>
+                    
+                     {/* Interactions Mini-View */}
+                    <div className="flex gap-4 text-sm text-gray-500">
+                       <div className="flex items-center gap-1">
+                          <ThumbsUp className="w-4 h-4" /> {post.likeCount || 0}
+                       </div>
+                       <div className="flex items-center gap-1">
+                          <MessageSquare className="w-4 h-4" /> {post.comments?.length || 0}
+                       </div>
                     </div>
                   </div>
               </div>
@@ -314,16 +321,62 @@ export default function AdminCommunity() {
                   {selectedPost.content}
                 </p>
 
-                <div className="relative bg-gray-100 rounded-xl overflow-hidden mb-6">
-                  <img
-                    src={getRandomImage(selectedPost.id)}
-                    alt="Post"
-                    className="w-full object-contain max-h-[500px]"
-                  />
+                {selectedPost.images && selectedPost.images.length > 0 && (
+                  <div className="relative bg-gray-100 rounded-xl overflow-hidden mb-6">
+                    <img
+                      src={selectedPost.images[0]}
+                      alt="Post"
+                      className="w-full object-contain max-h-[500px]"
+                    />
+                  </div>
+                )}
+                
+                {/* Interactions */}
+                <div className="flex gap-6 mb-6 pt-4 border-t">
+                    <div className="flex items-center gap-2 text-gray-600">
+                        <ThumbsUp className="w-5 h-5" />
+                        <span className="font-medium">{selectedPost.likeCount} Likes</span>
+                    </div>
+                     <div className="flex items-center gap-2 text-gray-600">
+                        <MessageSquare className="w-5 h-5" />
+                        <span className="font-medium">{selectedPost.comments?.length || 0} Comments</span>
+                    </div>
                 </div>
 
+                {/* Comments Section (Check if comments exist) */}
+                 <div className="bg-gray-50 rounded-xl p-4">
+                    <h4 className="font-bold text-gray-900 mb-4">Comments</h4>
+                    {selectedPost.comments && selectedPost.comments.length > 0 ? (
+                        <div className="space-y-4">
+                            {selectedPost.comments.map((comment) => (
+                                <div key={comment.id} className="flex gap-3">
+                                    <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-200 flex-shrink-0">
+                                        {comment.avatar ? (
+                                            <img src={comment.avatar} alt="Avatar" className="w-full h-full object-cover" />
+                                        ) : (
+                                            <div className="w-full h-full bg-blue-100 flex items-center justify-center text-blue-600 text-xs font-bold">
+                                                {comment.username ? comment.username.substring(0, 2).toUpperCase() : "U"}
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="bg-white p-3 rounded-lg shadow-sm flex-1">
+                                        <div className="flex justify-between items-start">
+                                            <span className="font-semibold text-sm block mb-1">{comment.username}</span>
+                                            <span className="text-xs text-gray-400">{comment.created}</span>
+                                        </div>
+                                        <p className="text-sm text-gray-700">{comment.content}</p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <p className="text-gray-500 text-sm text-center py-4">No comments yet.</p>
+                    )}
+                </div>
+
+
                 {/* Admin Actions */}
-                <div className="border-t pt-4 flex justify-end">
+                <div className="border-t mt-6 pt-4 flex justify-end">
                     <button className="text-red-600 hover:bg-red-50 px-4 py-2 rounded-lg font-medium flex items-center gap-2">
                         <Trash2 className="w-4 h-4" />
                         Remove Post

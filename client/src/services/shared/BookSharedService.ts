@@ -16,6 +16,7 @@ export interface Book {
   ratingsCount?: number;
   language?: string;
   price?: number;
+  rentalPrice?: number;
 }
 
 export interface PageResponse<T> {

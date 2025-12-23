@@ -184,4 +184,8 @@ export class BookService {
         const validCategories = allCategories.filter(c => typeof c === 'string' && c.trim() !== '');
         return Array.from(new Set(validCategories)).sort();
     }
+
+    async countBooks(): Promise<number> {
+        return await this.bookRepository.count();
+    }
 }
