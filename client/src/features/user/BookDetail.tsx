@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
   Star,
@@ -16,10 +16,11 @@ import { useAuthStore } from "../../store/authStore";
 import { bookSharedService } from "../../services/shared/BookSharedService";
 import { reviewService } from "../../services/user/ReviewingService";
 import { libraryService } from "../../services/user/LibraryService";
-import { orderingService } from "../../services/user/OrderingService";
+import { orderService } from "../../services/user/OrderService";
 
 export default function BookDetail() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const { user } = useAuthStore();
   const [book, setBook] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -30,6 +31,7 @@ export default function BookDetail() {
   const [userReview, setUserReview] = useState({ rating: 5, comment: "" });
   const [isAddedToLibrary, setIsAddedToLibrary] = useState(false);
   const [isPending, setIsPending] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
   
   // Fetch book details and reviews
   useEffect(() => {
@@ -70,21 +72,19 @@ export default function BookDetail() {
         // We catch errors here silently as strictly failing to fetch "my books" shouldn't block the page
         const [myBooks, myOrders] = await Promise.all([
              libraryService.getMyBooks().catch(() => []),
-             orderingService.getMyOrders().catch(() => [])
+             orderService.getMyOrders().catch(() => [])
         ]);
 
         const inLib = myBooks.some((item) => item.bookId.toString() === id.toString());
         setIsAddedToLibrary(inLib);
 
         // Check if there's a focused order for this book
-        // Assuming simplistic structure for now: order has bookId at top or in items
         const existingOrder = myOrders.find((order: any) => 
-            order.bookId?.toString() === id.toString() || 
-            (order.orderItems && order.orderItems.some((item: any) => item.bookId?.toString() === id.toString()))
+            (order.items && order.items.some((item: any) => item.book?.id?.toString() === id.toString()))
         );
         
-        // If pending order exists, maybe we want to disable borrow too?
-        if (existingOrder && existingOrder.status === 'PENDING') {
+        // If pending order exists
+        if (existingOrder && (existingOrder.status === 'PENDING_PAYMENT' || existingOrder.status === 'PENDING_APPROVAL')) {
              setIsPending(true);
         }
       } catch (err) {
@@ -138,35 +138,30 @@ export default function BookDetail() {
   };
 
   const handleBorrowBook = async () => {
+     // For now, Borrow behaves same as Buy (adds to library if free, creates order if paid)
+     await handleBuyBook();
+  };
+
+  const handleBuyBook = async () => {
     if (!user) {
-        alert("Please login to borrow books");
+        alert("Please login to buy books");
         return;
     }
 
     setLoading(true);
     try {
-        const isFree = book.price === 0 || book.price === "Free" || !book.price;
+        const { isCompleted } = await orderService.checkout([Number(id)]);
         
-        if (isFree) {
-            // Free book -> Add directly to library
-            await libraryService.addToLibrary(book.id);
-            setIsAddedToLibrary(true);
-            alert("Book added to your library!");
+        if (isCompleted) {
+             alert("Book purchased successfully! It has been added to your library.");
+             setIsAddedToLibrary(true);
         } else {
-            // Paid book -> Create pending order
-            await orderingService.createOrder({
-                bookId: book.id,
-                status: "PENDING"
-            });
-            alert("Order created! Waiting for approval.");
-            // Update local state to prevent duplicate requests
-             setIsPending(true);
+             alert("Order created successfully. Please confirm your payment in 'My Orders'.");
+             navigate("/profile/orders");
         }
     } catch (error: any) {
-        console.error("Error borrowing book:", error);
-        // Extract exact message if available
-        const serverMessage = error.message || "Unknown error";
-        alert(`Failed to process request: ${serverMessage}`);
+        console.error("Error buying book:", error);
+        alert("Failed to process purchase: " + (error.response?.data?.message || "Unknown error"));
     } finally {
         setLoading(false);
     }
@@ -268,7 +263,7 @@ export default function BookDetail() {
                 </div>
                 <div className="flex gap-3">
                   <button
-                    onClick={handleBorrowBook}
+                    onClick={() => setShowConfirmModal(true)}
                     disabled={isAddedToLibrary || isPending}
                     className={`px-6 py-3 rounded-lg font-semibold flex items-center gap-2 transition-colors ${
                       isAddedToLibrary || isPending
@@ -279,15 +274,52 @@ export default function BookDetail() {
                     <BookOpen className="h-5 w-5" />
                     {isAddedToLibrary ? "In Library" : isPending ? "Pending Approval" : "Borrow Book"}
                   </button>
-                  <button className="px-6 py-3 border border-gray-300 rounded-lg font-semibold text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-2">
-                    <ShoppingCart className="h-5 w-5" />
-                    Buy Now
-                  </button>
                   <button className="p-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors">
                     <Share2 className="h-5 w-5" />
                   </button>
                 </div>
               </div>
+
+               {/* Confirm Modal */}
+               {showConfirmModal && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6 animate-fade-in">
+                        <h3 className="text-xl font-bold text-gray-900 mb-4">Confirm Order</h3>
+                        
+                        <div className="space-y-4 mb-6">
+                            <div className="flex justify-between items-center py-2 border-b">
+                                <span className="text-gray-600">Book</span>
+                                <span className="font-medium text-right text-gray-900 truncate max-w-[200px]">{book.title}</span>
+                            </div>
+                            <div className="flex justify-between items-center py-2 border-b">
+                                <span className="text-gray-600">Price</span>
+                                <span className="font-bold text-blue-600">${price}</span>
+                            </div>
+                            <div className="bg-blue-50 p-3 rounded-lg text-sm text-blue-800">
+                                This order will be submitted for approval. You can manage your orders in your profile.
+                            </div>
+                        </div>
+
+                        <div className="flex gap-3">
+                            <button 
+                                onClick={() => setShowConfirmModal(false)}
+                                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium"
+                            >
+                                Cancel
+                            </button>
+                            <button 
+                                onClick={() => {
+                                    setShowConfirmModal(false);
+                                    handleBuyBook();
+                                }}
+                                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+                            >
+                                Confirm Order
+                            </button>
+                        </div>
+                    </div>
+                </div>
+               )}
 
               {/* Quick Info */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
@@ -359,6 +391,58 @@ export default function BookDetail() {
 
             {selectedTab === "reviews" && (
               <div>
+                {/* Add Review Form */}
+                <div className="bg-gray-50 rounded-xl p-6 mb-8">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                    Write a Review
+                  </h3>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Rating
+                      </label>
+                      <div className="flex gap-2">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <button
+                            key={star}
+                            onClick={() => setUserReview({ ...userReview, rating: star })}
+                            className="focus:outline-none"
+                          >
+                            <Star
+                              className={`h-6 w-6 ${
+                                star <= userReview.rating
+                                  ? "text-yellow-400 fill-current"
+                                  : "text-gray-300"
+                              }`}
+                            />
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Your Review
+                      </label>
+                      <textarea
+                        value={userReview.comment}
+                        onChange={(e) =>
+                          setUserReview({ ...userReview, comment: e.target.value })
+                        }
+                        rows={4}
+                        className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                        placeholder="Tell us what you thought about this book..."
+                      />
+                    </div>
+                    <button
+                      onClick={handleAddReview}
+                      disabled={!userReview.comment.trim()}
+                      className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors"
+                    >
+                      Post Review
+                    </button>
+                  </div>
+                </div>
+
                 {/* Reviews List */}
                 <div className="space-y-6">
                   {reviews.map((review) => (

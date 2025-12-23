@@ -1,8 +1,49 @@
 import { NavLink, useNavigate } from "react-router-dom";
-import { Search, LogOut, User, Settings, X } from "lucide-react";
+import { Search, LogOut, User, Settings, X, ShoppingBag, Bell, Info } from "lucide-react";
 import { useState, Fragment } from "react";
-import { Dialog, Transition } from "@headlessui/react";
+import { Dialog, Transition, Popover } from "@headlessui/react";
 import { useAuthStore } from "../../store/authStore";
+
+const NotificationPopover = () => {
+    return (
+        <Popover className="relative">
+            <Popover.Button className="relative p-2 text-gray-600 hover:text-blue-600 transition-colors bg-transparent border-0 outline-none">
+                <Bell className="h-6 w-6" />
+                {/* <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span> */}
+            </Popover.Button>
+
+            <Transition
+                as={Fragment}
+                enter="transition ease-out duration-200"
+                enterFrom="opacity-0 translate-y-1"
+                enterTo="opacity-100 translate-y-0"
+                leave="transition ease-in duration-150"
+                leaveFrom="opacity-100 translate-y-0"
+                leaveTo="opacity-0 translate-y-1"
+            >
+                <Popover.Panel className="absolute right-0 z-50 mt-2 w-80">
+                    <div className="overflow-hidden rounded-lg shadow-lg ring-1 ring-black ring-opacity-5">
+                        <div className="bg-white p-4">
+                            <h3 className="text-sm font-medium text-gray-900 mb-2">Notifications</h3>
+                            <div className="space-y-3">
+                                <div className="flex items-start gap-3 p-2 bg-gray-50 rounded-lg">
+                                    <Info className="h-5 w-5 text-blue-500 mt-0.5" />
+                                    <div>
+                                        <p className="text-sm text-gray-700">Welcome to BookVault!</p>
+                                        <p className="text-xs text-gray-500 mt-1">Start browsing books and create your first playlist.</p>
+                                    </div>
+                                </div>
+                                <div className="text-center text-xs text-gray-500 py-2">
+                                    No new notifications
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </Popover.Panel>
+            </Transition>
+        </Popover>
+    );
+};
 
 export default function Header() {
   const navigate = useNavigate();
@@ -88,21 +129,9 @@ export default function Header() {
                 }`
               }
             >
-              Categories
+              Community
             </NavLink>
-            <NavLink
-              to="/orders"
-              className={({ isActive }) =>
-                `px-3 py-2 rounded-md transition-colors ${
-                  isActive
-                    ? "text-blue-600 bg-blue-50"
-                    : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
-                }`
-              }
-            >
-              Orders
-            </NavLink>
-            <NavLink
+             <NavLink
               to="/chat"
               className={({ isActive }) =>
                 `px-3 py-2 rounded-md transition-colors ${
@@ -116,8 +145,20 @@ export default function Header() {
             </NavLink>
           </nav>
 
-          {/* User Actions - Avatar Button */}
-          <div className="flex items-center gap-2 pl-4 border-l border-gray-200">
+          {/* User Actions - Avatar & Icons */}
+          <div className="flex items-center gap-4 pl-4 border-l border-gray-200">
+             {/* Shopping Cart (Orders) */}
+             <NavLink
+               to="/profile/orders"
+               className="relative p-2 text-gray-600 hover:text-blue-600 transition-colors"
+               title="My Orders"
+             >
+                <ShoppingBag className="h-6 w-6" />
+             </NavLink>
+
+             {/* Notifications */}
+             <NotificationPopover />
+
             <button
               onClick={openUserModal}
               className="relative w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white ring-2 ring-transparent hover:ring-blue-200 transition-all shadow-sm"

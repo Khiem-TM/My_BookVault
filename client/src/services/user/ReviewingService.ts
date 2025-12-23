@@ -16,7 +16,7 @@ export const reviewService = {
    */
   getReviews: async (bookId: number | string): Promise<Review[]> => {
     const response = await api.get<ApiResponse<Review[]>>(
-      `/review/api/reviews/book/${bookId}`
+      `/review/book/${bookId}`
     );
     return response.data.result || [];
   },
@@ -25,7 +25,7 @@ export const reviewService = {
    * Add a review
    */
   addReview: async (bookId: number | string, data: any): Promise<any> => {
-    const response = await api.post<ApiResponse<any>>(`/review/api/reviews`, {
+    const response = await api.post<ApiResponse<any>>(`/review`, {
       ...data,
       bookId,
     });
@@ -37,7 +37,7 @@ export const reviewService = {
    */
   updateReview: async (reviewId: string, data: any): Promise<any> => {
     const response = await api.put<ApiResponse<any>>(
-      `/review/api/reviews/${reviewId}`,
+      `/review/${reviewId}`,
       data
     );
     return response.data.result!;
@@ -47,6 +47,6 @@ export const reviewService = {
    * Delete review
    */
   deleteReview: async (reviewId: string): Promise<void> => {
-    await api.delete(`/review/api/reviews/${reviewId}`);
+    await api.delete(`/review/${reviewId}`);
   },
 };

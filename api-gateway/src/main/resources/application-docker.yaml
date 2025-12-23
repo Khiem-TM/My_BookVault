@@ -74,10 +74,10 @@ spring:
             - Path=${app.api-prefix}/chat/**
           filters:
             - StripPrefix=2
-        # Book Service Routes
-        # Frontend calls /api/v1/books -> Gateway strips /api/v1 -> book-service:8086/books
+        # Book Service Routes -> Redirected to bookx-service (ExpressJS)
+        # Frontend calls /api/v1/books -> Gateway strips /api/v1 -> bookx-service:3001/api/books
         - id: book_service_query
-          uri: http://book-service:8086
+          uri: http://bookx-service:3001
           predicates:
             - Path=${app.api-prefix}/books/**
             - Method=GET
@@ -95,13 +95,13 @@ spring:
                 statuses: BAD_GATEWAY, SERVICE_UNAVAILABLE, GATEWAY_TIMEOUT
 
         - id: book_service_management
-          uri: http://book-service:8086
+          uri: http://bookx-service:3001
           predicates:
             - Path=${app.api-prefix}/books/**
             - Method=POST,PUT,DELETE
           filters:
             - StripPrefix=2
-            - RewritePath=/books(?<segment>.*), /api/admin/books${segment}
+            - RewritePath=/books(?<segment>.*), /api/books${segment}
             - name: RequestRateLimiter
               args:
                 "[redis-rate-limiter.replenishRate]": 50
@@ -109,7 +109,7 @@ spring:
                 key-resolver: "#{@ipKeyResolver}"
 
         - id: book_service_reviews
-          uri: http://book-service:8086
+          uri: http://bookx-service:3001
           predicates:
             - Path=${app.api-prefix}/reviews/**
           filters:
@@ -126,12 +126,12 @@ spring:
                 statuses: BAD_GATEWAY, SERVICE_UNAVAILABLE, GATEWAY_TIMEOUT
 
         - id: book_service_borrows
-          uri: http://book-service:8086
+          uri: http://bookx-service:3001
           predicates:
             - Path=${app.api-prefix}/borrows/**
           filters:
             - StripPrefix=2
-            - RewritePath=/borrows/?(?<segment>.*), /api/borrows/${segment}
+            - RewritePath=/borrows/?(?<segment>.*), /api/transactions/borrow
             - name: RequestRateLimiter
               args:
                 "[redis-rate-limiter.replenishRate]": 100
@@ -139,12 +139,12 @@ spring:
                 key-resolver: "#{@ipKeyResolver}"
 
         - id: book_service_rentals
-          uri: http://book-service:8086
+          uri: http://bookx-service:3001
           predicates:
             - Path=${app.api-prefix}/rentals/**
           filters:
             - StripPrefix=2
-            - RewritePath=/rentals/?(?<segment>.*), /api/rentals/${segment}
+            - RewritePath=/rentals/?(?<segment>.*), /api/transactions/${segment}
             - name: RequestRateLimiter
               args:
                 "[redis-rate-limiter.replenishRate]": 100
@@ -152,11 +152,12 @@ spring:
                 key-resolver: "#{@ipKeyResolver}"
 
         - id: library_service
-          uri: http://book-service:8086
+          uri: http://bookx-service:3001
           predicates:
             - Path=${app.api-prefix}/library/**
           filters:
             - StripPrefix=2
+            - RewritePath=/library/(?<segment>.*), /api/playlists/${segment}
             - name: RequestRateLimiter
               args:
                 "[redis-rate-limiter.replenishRate]": 100
@@ -168,11 +169,12 @@ spring:
                 statuses: BAD_GATEWAY, SERVICE_UNAVAILABLE, GATEWAY_TIMEOUT
 
         - id: transaction_service
-          uri: http://book-service:8086
+          uri: http://bookx-service:3001
           predicates:
             - Path=${app.api-prefix}/transactions/**
           filters:
             - StripPrefix=2
+            - RewritePath=/transactions/(?<segment>.*), /api/transactions/${segment}
             - name: RequestRateLimiter
               args:
                 "[redis-rate-limiter.replenishRate]": 50

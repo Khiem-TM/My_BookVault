@@ -77,17 +77,17 @@ spring:
             - Path=${app.api-prefix}/chat/**
           filters:
             - StripPrefix=2
-        # Book Service Routes
-        # Structure: Frontend calls /api/v1/books/* -> Gateway -> book-service:8086/books/*
+        # Book Service Routes -> Redirected to bookx-service (ExpressJS)
+        # Structure: Frontend calls /api/v1/books/* -> Gateway -> bookx-service:3001/api/books/*
 
         # Book Management (Admin Only) - Create, Update, Delete
         - id: book_service_management
-          uri: http://book-service:8086
+          uri: http://localhost:3001
           predicates:
             - Path=${app.api-prefix}/books
             - Method=GET,POST,PUT,DELETE
           filters:
-            - StripPrefix=2
+            - RewritePath=/api/v1/(?<segment>.*), /api/${segment}
             - name: RequestRateLimiter
               args:
                 redis-rate-limiter.replenishRate: 50
@@ -96,7 +96,7 @@ spring:
 
         # Book Query Operations - Read, Search, Statistics
         - id: book_service_query
-          uri: http://book-service:8086
+          uri: http://localhost:3001
           predicates:
             - Path=${app.api-prefix}/book/books/**
           filters:
@@ -107,22 +107,22 @@ spring:
                 redis-rate-limiter.burstCapacity: 400
                 key-resolver: "#{@ipKeyResolver}"
         - id: book_service_borrow
-          uri: http://book-service:8086
+          uri: http://localhost:3001
           predicates:
             - Path=${app.api-prefix}/book/borrows/**
           filters:
-            - RewritePath=/api/v1/book/(?<segment>.*), /api/${segment}
+            - RewritePath=/api/v1/book/borrows/(?<segment>.*), /api/transactions/${segment}
             - name: RequestRateLimiter
               args:
                 redis-rate-limiter.replenishRate: 150
                 redis-rate-limiter.burstCapacity: 300
                 key-resolver: "#{@ipKeyResolver}"
         - id: book_service_rental
-          uri: http://book-service:8086
+          uri: http://localhost:3001
           predicates:
             - Path=${app.api-prefix}/book/rentals/**
           filters:
-            - RewritePath=/api/v1/book/(?<segment>.*), /api/${segment}
+            - RewritePath=/api/v1/book/rentals/(?<segment>.*), /api/transactions/${segment}
             - name: RequestRateLimiter
               args:
                 redis-rate-limiter.replenishRate: 150
@@ -130,12 +130,11 @@ spring:
                 key-resolver: "#{@ipKeyResolver}"
         # Legacy Book Service endpoints (split for clarity)
         - id: library_service_route
-          uri: http://book-service:8086
+          uri: http://localhost:3001
           predicates:
             - Path=${app.api-prefix}/library/**
           filters:
-            - StripPrefix=2
-            - RewritePath=/library/(?<segment>.*), /library/${segment}
+            - RewritePath=/api/v1/library/(?<segment>.*), /api/playlists/${segment}
             - name: RequestRateLimiter
               args:
                 redis-rate-limiter.replenishRate: 50
@@ -143,11 +142,11 @@ spring:
                 key-resolver: "#{@ipKeyResolver}"
         
         - id: order_service_route
-          uri: http://book-service:8086
+          uri: http://localhost:3001
           predicates:
             - Path=${app.api-prefix}/orders/**
           filters:
-            - StripPrefix=2
+            - RewritePath=/api/v1/orders/(?<segment>.*), /api/orders/${segment}
             - name: RequestRateLimiter
               args:
                 redis-rate-limiter.replenishRate: 50
@@ -155,20 +154,18 @@ spring:
                 key-resolver: "#{@ipKeyResolver}"
 
         - id: review_service_route
-          uri: http://book-service:8086
+          uri: http://localhost:3001
           predicates:
             - Path=${app.api-prefix}/review/**
           filters:
-            - StripPrefix=2
-            - RewritePath=/review/(?<segment>.*), /${segment}
+            - RewritePath=/api/v1/review/(?<segment>.*), /api/reviews/${segment}
         
         - id: transaction_service_route
-          uri: http://book-service:8086
+          uri: http://localhost:3001
           predicates:
             - Path=${app.api-prefix}/transaction/**
           filters:
-            - StripPrefix=2
-            - RewritePath=/transaction/(?<segment>.*), /${segment}
+            - RewritePath=/api/v1/transaction/(?<segment>.*), /api/transactions/${segment}
         - id: payment_service
           uri: http://payment-service:8092
           predicates:

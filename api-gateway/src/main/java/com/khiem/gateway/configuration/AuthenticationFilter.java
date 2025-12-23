@@ -54,6 +54,15 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
         if (isPublicEndpoint(exchange.getRequest()))
             return chain.filter(exchange);
 
+        String path = exchange.getRequest().getURI().getPath();
+        String method = exchange.getRequest().getMethod().name();
+
+        // Allow public access to GET /books
+        if (path.matches(apiPrefix + "/books.*") && method.equals("GET")) {
+            return chain.filter(exchange);
+        }
+
+
         // Get token from authorization header
         List<String> authHeader = exchange.getRequest().getHeaders().get(HttpHeaders.AUTHORIZATION);
         if (CollectionUtils.isEmpty(authHeader))

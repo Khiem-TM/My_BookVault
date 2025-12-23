@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { orderingService } from "../../services/user/OrderingService";
+import { orderService, Order } from "../../services/user/OrderService";
 import {
   Package,
   Clock,
@@ -16,27 +16,6 @@ import {
   AlertCircle,
 } from "lucide-react";
 
-interface Order {
-  id: string;
-  userId: string;
-  bookId: string;
-  status: "PENDING" | "PAID" | "CANCELLED" | "RETURNED" | "OVERDUE";
-  orderType: "BUY" | "RENT";
-  createdAt: string;
-  updatedAt?: string;
-  totalPrice?: number;
-  paymentMethod?: string;
-  notes?: string;
-  rentalStartDate?: string;
-  rentalEndDate?: string;
-  rentalDays?: number;
-  rentalPrice?: number;
-  bookTitle?: string;
-  bookAuthor?: string;
-}
-
-
-
 export default function Orders() {
   const qc = useQueryClient();
   const userId = "1"; // TODO: get from auth store
@@ -48,7 +27,7 @@ export default function Orders() {
     queryKey: ["orders"],
     queryFn: async () => {
       try {
-        const data = await orderingService.getMyOrders();
+        const data = await orderService.getMyOrders();
         return data || [];
       } catch (err) {
         console.error("Failed to fetch orders", err);
@@ -57,45 +36,55 @@ export default function Orders() {
     },
   });
 
+  const handlePayNow = async (orderId: number) => {
+      if (window.confirm("Confirm manual payment for this order?")) {
+          try {
+              await orderService.manualConfirm(orderId);
+              qc.invalidateQueries({ queryKey: ["orders"] });
+              alert("Payment confirmed pending approval");
+          } catch (e) {
+              alert("Error confirming payment");
+          }
+      }
+  };
+
   // Filter logic
   const filteredOrders = (orders || []).filter((order) => {
     const matchesStatus =
       statusFilter === "ALL" || order.status === statusFilter;
-    const matchesType =
-      orderTypeFilter === "ALL" || order.orderType === orderTypeFilter;
+    // const matchesType = orderTypeFilter === "ALL" || order.orderType === orderTypeFilter; // We don't have orderType yet in new Order entity
+    const matchesType = true; 
     const matchesSearch =
       !searchTerm ||
-      order.bookTitle?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.id.includes(searchTerm);
+      order.id.toString().includes(searchTerm) ||
+      (order.items && order.items.some((item: any) => item.book?.title?.toLowerCase().includes(searchTerm.toLowerCase())));
     return matchesStatus && matchesType && matchesSearch;
   });
 
   // Calculate stats
   const stats = {
     total: orders?.length || 0,
-    pending: orders?.filter((o) => o.status === "PENDING").length || 0,
-    rentals: orders?.filter((o) => o.orderType === "RENT").length || 0,
-    purchases: orders?.filter((o) => o.orderType === "BUY").length || 0,
+    pending: orders?.filter((o) => o.status === "PENDING_PAYMENT" || o.status === "PENDING_APPROVAL").length || 0,
+    rentals: 0, // orders?.filter((o) => o.orderType === "RENT").length || 0,
+    purchases: orders?.length || 0, // Assuming all are purchases for now
   };
 
   // Check if rental is overdue
   const isOverdue = (order: Order) => {
-    if (order.orderType !== "RENT" || !order.rentalEndDate) return false;
-    return new Date(order.rentalEndDate) < new Date();
+    return false; // Not implementing rentals yet
   };
 
   // Status badge color
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "PAID":
-      case "RETURNED":
+      case "COMPLETED":
         return "bg-green-100 text-green-800";
-      case "PENDING":
+      case "PENDING_PAYMENT":
         return "bg-yellow-100 text-yellow-800";
+      case "PENDING_APPROVAL":
+        return "bg-blue-100 text-blue-800";
       case "CANCELLED":
         return "bg-red-100 text-red-800";
-      case "OVERDUE":
-        return "bg-orange-100 text-orange-800";
       default:
         return "bg-gray-100 text-gray-800";
     }
@@ -104,15 +93,13 @@ export default function Orders() {
   // Status icon
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case "PAID":
-      case "RETURNED":
+      case "COMPLETED":
         return <CheckCircle className="h-5 w-5" />;
-      case "PENDING":
+      case "PENDING_PAYMENT":
+      case "PENDING_APPROVAL":
         return <Clock className="h-5 w-5" />;
       case "CANCELLED":
         return <XCircle className="h-5 w-5" />;
-      case "OVERDUE":
-        return <AlertCircle className="h-5 w-5" />;
       default:
         return <Package className="h-5 w-5" />;
     }
@@ -130,13 +117,13 @@ export default function Orders() {
             <div>
               <h1 className="text-3xl font-bold text-gray-900">My Orders</h1>
               <p className="text-gray-600">
-                Track your book purchases and rentals
+                Track your book purchases
               </p>
             </div>
           </div>
 
           {/* Stats Overview */}
-          <div className="hidden md:grid grid-cols-4 gap-4">
+          <div className="hidden md:grid grid-cols-3 gap-4">
             <div className="text-center p-4 bg-white rounded-lg shadow">
               <div className="text-2xl font-bold text-gray-900">
                 {stats.total}
@@ -150,12 +137,6 @@ export default function Orders() {
               <div className="text-sm text-gray-600">Pending</div>
             </div>
             <div className="text-center p-4 bg-white rounded-lg shadow">
-              <div className="text-2xl font-bold text-blue-600">
-                {stats.rentals}
-              </div>
-              <div className="text-sm text-gray-600">Rentals</div>
-            </div>
-            <div className="text-center p-4 bg-white rounded-lg shadow">
               <div className="text-2xl font-bold text-green-600">
                 {stats.purchases}
               </div>
@@ -166,7 +147,7 @@ export default function Orders() {
 
         {/* Filters */}
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Search */}
             <div className="relative">
               <Search className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
@@ -186,22 +167,10 @@ export default function Orders() {
               className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="ALL">All Status</option>
-              <option value="PENDING">Pending</option>
-              <option value="PAID">Paid</option>
+              <option value="PENDING_PAYMENT">Pending Payment</option>
+              <option value="PENDING_APPROVAL">Pending Approval</option>
+              <option value="COMPLETED">Completed</option>
               <option value="CANCELLED">Cancelled</option>
-              <option value="RETURNED">Returned</option>
-              <option value="OVERDUE">Overdue</option>
-            </select>
-
-            {/* Order Type Filter */}
-            <select
-              value={orderTypeFilter}
-              onChange={(e) => setOrderTypeFilter(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="ALL">All Types</option>
-              <option value="BUY">Purchase</option>
-              <option value="RENT">Rental</option>
             </select>
           </div>
         </div>
@@ -219,7 +188,7 @@ export default function Orders() {
               No orders found
             </h3>
             <p className="text-gray-500 mt-2">
-              {searchTerm || statusFilter !== "ALL" || orderTypeFilter !== "ALL"
+              {searchTerm || statusFilter !== "ALL"
                 ? "Try adjusting your filters"
                 : "Start ordering books now!"}
             </p>
@@ -235,9 +204,7 @@ export default function Orders() {
             {filteredOrders.map((order) => (
               <div
                 key={order.id}
-                className={`bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow ${
-                  isOverdue(order) ? "border-2 border-orange-400" : ""
-                }`}
+                className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow"
               >
                 {/* Card Header */}
                 <div className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white p-4">
@@ -247,37 +214,43 @@ export default function Orders() {
                       <div>
                         <p className="font-semibold">Order #{order.id}</p>
                         <p className="text-sm opacity-90">
-                          {order.orderType === "BUY" ? "Purchase" : "Rental"}
+                           Purchase
                         </p>
                       </div>
                     </div>
                     <span
                       className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(
-                        isOverdue(order) ? "OVERDUE" : order.status
+                        order.status
                       )}`}
                     >
-                      {isOverdue(order) ? "OVERDUE" : order.status}
+                      {order.status}
                     </span>
                   </div>
                 </div>
 
                 {/* Card Body */}
                 <div className="p-4 space-y-3">
-                  {/* Book Info */}
-                  <div className="flex items-start gap-3">
-                    <BookOpen className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
-                    <div>
-                      <p className="font-semibold text-gray-800">
-                        {order.bookTitle || "Unknown Book"}
-                      </p>
-                      <p className="text-sm text-gray-600">
-                        by {order.bookAuthor || "Unknown Author"}
-                      </p>
+                  {/* Book Info - Multiple Items Support */}
+                  {order.items && order.items.map((item: any, idx: number) => (
+                      <div key={idx} className="flex items-start gap-3 mb-2">
+                        <BookOpen className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                        <div>
+                        <p className="font-semibold text-gray-800">
+                            {item.book?.title || "Unknown Book"}
+                        </p>
+                        <p className="text-sm text-gray-600">
+                            by {item.book?.author || "Unknown Author"}
+                        </p>
+                         <p className="text-xs text-gray-500">
+                            Type: {item.bookType} - ${item.price}
+                         </p>
+                        </div>
                     </div>
-                  </div>
+                  ))}
+                  
 
                   {/* Date Info */}
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 pt-2 border-t border-gray-100">
                     <Calendar className="h-4 w-4 text-gray-400" />
                     <span className="text-sm text-gray-600">
                       {new Date(order.createdAt).toLocaleDateString()}
@@ -285,41 +258,24 @@ export default function Orders() {
                   </div>
 
                   {/* Price Info */}
-                  {order.totalPrice && (
+                  {order.totalPrice !== undefined && (
                     <div className="flex items-center gap-2">
                       <DollarSign className="h-4 w-4 text-green-600" />
                       <span className="font-semibold text-gray-800">
-                        ${order.totalPrice.toFixed(2)}
+                        ${Number(order.totalPrice).toFixed(2)}
                       </span>
-                    </div>
-                  )}
-
-                  {/* Rental Info */}
-                  {order.orderType === "RENT" && order.rentalStartDate && (
-                    <div className="flex items-start gap-2 pt-2 border-t border-gray-200">
-                      <RotateCcw className="h-4 w-4 text-indigo-400 mt-0.5 flex-shrink-0" />
-                      <div className="text-sm">
-                        <div className="text-gray-600">Rental Period</div>
-                        <div className="font-medium text-gray-800">
-                          {order.rentalDays} days
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          {new Date(order.rentalStartDate).toLocaleDateString()}{" "}
-                          →{" "}
-                          {new Date(
-                            order.rentalEndDate || ""
-                          ).toLocaleDateString()}
-                        </div>
-                      </div>
                     </div>
                   )}
                 </div>
 
                 {/* Card Footer - Actions */}
                 <div className="bg-gray-50 px-4 py-3 flex gap-2">
-                  {order.status === "PENDING" && (
+                  {order.status === "PENDING_PAYMENT" && (
                     <>
-                      <button className="flex-1 px-3 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors font-medium">
+                      <button 
+                        onClick={() => handlePayNow(order.id)}
+                        className="flex-1 px-3 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors font-medium"
+                      >
                         Pay Now
                       </button>
                       <button className="flex-1 px-3 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-colors font-medium">
@@ -327,16 +283,16 @@ export default function Orders() {
                       </button>
                     </>
                   )}
-                  {order.orderType === "RENT" &&
-                    order.status !== "CANCELLED" &&
-                    order.status !== "RETURNED" && (
-                      <button className="flex-1 px-3 py-2 bg-purple-600 text-white text-sm rounded-lg hover:bg-purple-700 transition-colors font-medium">
-                        Extend Rental
-                      </button>
-                    )}
-                  <button className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm">
-                    View Details
-                  </button>
+                  {order.status === "PENDING_APPROVAL" && (
+                       <div className="w-full text-center text-sm text-blue-600 font-medium py-2">
+                           Waiting for Admin Approval
+                       </div>
+                  )}
+                  {order.status === "COMPLETED" && (
+                    <button className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm">
+                        View Details
+                    </button>
+                   )}
                 </div>
               </div>
             ))}

@@ -20,7 +20,27 @@ import { JSX } from "react";
 import Layout from "./shared/ui/Layout";
 import AdminLayout from "./features/admin/AdminLayout";
 import AdminCommunity from "./features/admin/AdminCommunity";
+import AdminOrders from "./features/admin/AdminOrders";
 import { useAuthStore } from "./store/authStore";
+
+// ...
+
+      {/* Admin Routes - Protected + Role Check */}
+      <Route
+        element={
+          <ProtectedRoute role="ADMIN">
+            <AdminLayout />
+          </ProtectedRoute>
+        }
+      >
+        <Route path="admin" element={<AdminDashboard />} />
+        <Route path="admin/orders" element={<AdminOrders />} />
+        <Route path="admin/total-books" element={<TotalBooks />} />
+        <Route path="admin/books/:id" element={<AdminBookDetail />} />
+        <Route path="admin/total-users" element={<TotalUsers />} />
+        <Route path="admin/total-borrows" element={<TotalBorrows />} />
+        <Route path="admin/community" element={<AdminCommunity />} />
+      </Route>
 
 /**
  * Protected Route Wrapper

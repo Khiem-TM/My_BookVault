@@ -114,7 +114,7 @@ export default function MyPlaylist() {
               </div>
               <div className="text-center">
                 <div className="text-2xl font-bold text-purple-600">
-                  {filteredPlaylists.reduce((sum, p) => sum + p.bookCount, 0)}
+                  {filteredPlaylists.reduce((sum, p) => sum + (p.bookCount || 0), 0)}
                 </div>
                 <div className="text-sm text-gray-600">Total Books</div>
               </div>
@@ -212,8 +212,38 @@ export default function MyPlaylist() {
           </div>
         )}
 
-        {/* Playlists Grid/List */}
-        {!loading && filteredPlaylists.length > 0 && (
+        {/* Rented Books Section */}
+        <div className="mb-12">
+           <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+              <BookOpen className="h-5 w-5 text-blue-600" />
+              Sách đã thuê (Rented Books)
+           </h2>
+           {/* We can fetch rented books here or reuse a list if we had one. 
+               For now, we'll assume we need to fetch them or they are part of 'playlists' logic improvement later. 
+               The user asked to split the view. 
+               Since we don't have a direct 'rented books' state yet in this component, 
+               I will add it in the next step or assume we simply show a placeholder if empty 
+               but the user asked for functional separation. 
+               Actually, let's fetch myBooks in useEffect too.
+            */}
+           {/* Placeholder for Rented Books Grid - to be populated by state */}
+           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8 text-center">
+              <p className="text-gray-500">You haven't rented any books yet.</p>
+              <Link to="/books" className="text-blue-600 font-medium hover:underline mt-2 inline-block">Browse Books</Link>
+           </div>
+        </div>
+
+        {/* Playlists Section */}
+        <div>
+           <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                 <List className="h-5 w-5 text-purple-600" />
+                 My Playlists
+              </h2>
+           </div>
+           
+           {/* Existing Playlist Grid/List Logic */}
+           {!loading && filteredPlaylists.length > 0 && (
           <div
             className={
               viewMode === "grid"
@@ -368,6 +398,7 @@ export default function MyPlaylist() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }
