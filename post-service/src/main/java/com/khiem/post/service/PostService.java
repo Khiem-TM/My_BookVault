@@ -10,6 +10,9 @@ import com.khiem.post.mapper.PostMapper;
 import com.khiem.post.repository.PostRepository;
 import com.khiem.post.repository.httpclient.ProfileClient;
 import com.khiem.post.service.RelativeDateTimeFormatter;
+import com.khiem.post.event.PostLikeEvent;
+import com.khiem.post.event.PostCommentEvent;
+import org.springframework.kafka.core.KafkaTemplate;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -33,6 +36,7 @@ public class PostService {
     PostRepository postRepository;
     PostMapper postMapper;
     ProfileClient profileClient;
+    KafkaTemplate<String, Object> kafkaTemplate;
 
     // Tạo post with images
     public PostResponse createPost(PostRequest request){
@@ -154,9 +158,9 @@ public class PostService {
                 .orElseThrow(() -> new RuntimeException("Post not found"));
         
         if (!post.getLikedByUserIds().contains(userId)) {
+            kafkaTemplate.send("post-like-event", new PostLikeEvent(postId, userId));
+            // Optimistic update
             post.getLikedByUserIds().add(userId);
-            post.setModifiedDate(Instant.now());
-            post = postRepository.save(post);
         }
         
         return buildPostResponse(post, userId);
@@ -171,9 +175,9 @@ public class PostService {
                 .orElseThrow(() -> new RuntimeException("Post not found"));
         
         if (post.getLikedByUserIds().contains(userId)) {
+            kafkaTemplate.send("post-unlike-event", new PostLikeEvent(postId, userId));
+            // Optimistic update
             post.getLikedByUserIds().remove(userId);
-            post.setModifiedDate(Instant.now());
-            post = postRepository.save(post);
         }
         
         return buildPostResponse(post, userId);
@@ -201,8 +205,20 @@ public class PostService {
             log.error("Error while getting user profile", e);
         }
         
+        String commentId = UUID.randomUUID().toString();
+        
+        kafkaTemplate.send("post-comment-event", PostCommentEvent.builder()
+                .postId(request.getPostId())
+                .userId(userId)
+                .content(request.getContent())
+                .commentId(commentId)
+                .username(username)
+                .avatar(avatar)
+                .build());
+
+        // Optimistic update
         var comment = Post.Comment.builder()
-                .id(UUID.randomUUID().toString())
+                .id(commentId)
                 .userId(userId)
                 .username(username)
                 .avatar(avatar)
@@ -211,8 +227,6 @@ public class PostService {
                 .build();
         
         post.getComments().add(comment);
-        post.setModifiedDate(Instant.now());
-        post = postRepository.save(post);
         
         return buildPostResponse(post, userId);
     }

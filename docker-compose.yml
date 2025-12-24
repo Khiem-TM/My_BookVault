@@ -226,6 +226,7 @@ services:
     environment:
       SPRING_DATA_MONGODB_URI: "mongodb://root:root@mongodb:27017/post-service?authSource=admin"
       APP_SERVICES_PROFILE_URL: "http://profile-service:8081/profile"
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: "kafka:9094"
     depends_on:
       mongodb:
         condition: service_started

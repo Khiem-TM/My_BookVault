@@ -64,7 +64,7 @@ spring:
           predicates:
             - Path=${app.api-prefix}/post/**
           filters:
-            - StripPrefix=2
+            - RewritePath=/api/v1/post/?(?<segment>.*), /post/${segment}
         - id: file_service
           uri: http://file-service:8084
           predicates:

@@ -16,5 +16,9 @@ public class PaymentRequest {
     public void setUserId(Long userId) { this.userId = userId; }
     public Long getAmount() { return amount; }
     public void setAmount(Long amount) { this.amount = amount; }
+
+    private String paymentMethod;
+    public String getPaymentMethod() { return paymentMethod; }
+    public void setPaymentMethod(String paymentMethod) { this.paymentMethod = paymentMethod; }
 }
 
